@@ -5,9 +5,9 @@ Next.js 14 (App Router), Supabase, Tailwind CSS, shadcn/ui and Resend.
 Three roles: **admin**, **teacher**, **student**. All registrations are held
 as `pending` until an admin approves them.
 
-> **Status:** Phases 1–3 are implemented. Phases 4–6 (student portal,
-> PDF reports, polish) are scaffolded as routes/placeholders and will be
-> filled in over subsequent PRs.
+> **Status:** Phases 1–4 are implemented. Phases 5–6 (PDF reports, polish)
+> are scaffolded as routes/placeholders and will be filled in over
+> subsequent PRs.
 
 ---
 
@@ -252,6 +252,26 @@ relevant Phase 2+ API routes (`/api/auth/approve`, `/api/payments`, etc.).
 - ✅ All teacher mutations enforce `assertTeacherOwnsCourse()` and check
   the teacher actually has the student enrolled before writing a report
 
+## What ships in Phase 4
+
+- ✅ Student layout with branded sidebar (gated to approved students only)
+- ✅ Student **overview** with active courses / attendance % / recent
+  payments / visible reports stat cards and quick-peek panels
+- ✅ **My courses** list and per-course detail page with three tabs:
+  Grades, Attendance, Course info (teacher, schedule, program)
+- ✅ **Grades** page grouped by course with weighted-average computation
+  across all assessments
+- ✅ **Attendance** page with overall present/late/absent/excused
+  breakdown and full session history across every enrolled course
+- ✅ **Payments** page with total-paid, this-month and latest summary
+  plus full payment ledger (method, reference, notes)
+- ✅ **Reports** page that only shows teacher reports where
+  `is_visible_to_student = true` (RLS-enforced, belt-and-braces filter)
+- ✅ **Profile** page with an editable contact form (full_name, phone,
+  DOB, address, guardian + emergency contact). Updates go through
+  `updateStudentProfile` which relies on the self-update RLS policies
+  on `profiles` and `students`
+
 ## Roadmap
 
 | Phase | Description                                                       | Status        |
@@ -259,6 +279,6 @@ relevant Phase 2+ API routes (`/api/auth/approve`, `/api/payments`, etc.).
 | 1     | Foundation — auth, schema, RLS, register/login/pending, Resend    | ✅ shipped    |
 | 2     | Admin dashboard, approvals, students/teachers/courses CRUD        | ✅ shipped    |
 | 3     | Teacher portal — courses, attendance, grades, reports             | ✅ shipped    |
-| 4     | Student portal — courses, grades, payments, profile               | ⏳ scaffolded |
+| 4     | Student portal — courses, grades, payments, profile               | ✅ shipped    |
 | 5     | PDF reports via `@react-pdf/renderer`                              | ⏳ scaffolded |
 | 6     | Notifications, announcements, audit log, course resources         | ⏳ scaffolded |
