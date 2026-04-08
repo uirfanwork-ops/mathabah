@@ -50,9 +50,13 @@
       radial-gradient(circle at 10% 0%, rgba(155, 28, 43, 0.08), transparent 40%),
       radial-gradient(circle at 90% 100%, rgba(201, 161, 74, 0.06), transparent 45%);
     background-attachment: fixed;
+    font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI",
+      Roboto, sans-serif;
   }
   h1, h2, h3, h4 {
-    @apply font-serif tracking-tight;
+    @apply tracking-tight;
+    font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI",
+      Roboto, sans-serif;
   }
 }
 
@@ -65,5 +69,79 @@
   }
   .gold-divider {
     @apply h-px w-full bg-gradient-to-r from-transparent via-brand-gold/60 to-transparent;
+  }
+
+  /* ── Portal theme ──────────────────────────────────────────────────────
+     Scope: the authenticated /admin, /teacher, /student layouts wrap their
+     <main> in `.portal-main`. Inside that wrapper we force a light surface
+     with black sans-serif text and remap the dark-theme brand utilities
+     to light equivalents. The sidebar (`.portal-nav`) stays explicitly
+     black and is NOT a descendant of `.portal-main`, so it keeps its own
+     colors. */
+  .portal-main {
+    background-color: #ffffff;
+    color: #0a0a0a;
+    font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI",
+      Roboto, sans-serif;
+  }
+  .portal-main h1,
+  .portal-main h2,
+  .portal-main h3,
+  .portal-main h4,
+  .portal-main h5,
+  .portal-main h6 {
+    color: #0a0a0a;
+    font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI",
+      Roboto, sans-serif;
+  }
+  .portal-main .font-serif {
+    font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI",
+      Roboto, sans-serif;
+  }
+  /* Remap brand text colors to contrasting darks. */
+  .portal-main [class*="text-brand-parchment"],
+  .portal-main [class*="text-brand-goldlight"] {
+    color: #0a0a0a !important;
+  }
+  .portal-main [class*="text-brand-gold"] {
+    color: #6b5320 !important;
+  }
+  .portal-main [class*="text-muted-foreground"] {
+    color: #4b5563 !important;
+  }
+  /* Remap brand surface backgrounds to white / near-white. */
+  .portal-main [class*="bg-brand-ink"],
+  .portal-main [class*="bg-card"],
+  .portal-main [class*="bg-background"] {
+    background-color: #ffffff !important;
+  }
+  .portal-main [class*="bg-brand-gold/10"],
+  .portal-main [class*="bg-brand-gold/5"] {
+    background-color: #f8f5eb !important;
+  }
+  /* Tame the heavy dark shadows that were tuned for a dark background. */
+  .portal-main [class*="shadow-black"] {
+    --tw-shadow-color: rgba(0, 0, 0, 0.08) !important;
+    --tw-shadow: var(--tw-shadow-colored) !important;
+  }
+  /* Borders: replace translucent gold with soft gray. */
+  .portal-main [class*="border-brand-gold"] {
+    border-color: #e5e7eb !important;
+  }
+  /* Inputs / textareas inside the portal should be light. */
+  .portal-main input,
+  .portal-main textarea,
+  .portal-main select {
+    background-color: #ffffff;
+    color: #0a0a0a;
+    border-color: #d1d5db;
+  }
+  .portal-main input::placeholder,
+  .portal-main textarea::placeholder {
+    color: #9ca3af;
+  }
+  /* Keep red accents (status badges, destructive buttons) visible. */
+  .portal-main [class*="bg-brand-red"] {
+    color: #ffffff !important;
   }
 }

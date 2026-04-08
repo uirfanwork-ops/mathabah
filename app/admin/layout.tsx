@@ -34,21 +34,21 @@ export default async function AdminLayout({
     .eq("status", "pending");
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="border-b border-brand-gold/20 bg-brand-ink/80 backdrop-blur">
+    <div className="flex min-h-screen flex-col bg-white">
+      <header className="border-b border-black bg-black">
         <div className="container flex items-center justify-between py-4">
           <div className="flex items-center gap-6">
             <Link href="/admin">
               <BrandMark />
             </Link>
-            <span className="rounded-full border border-brand-red/50 px-3 py-0.5 text-[10px] uppercase tracking-[0.2em] text-brand-red">
+            <span className="rounded-full border border-white/30 px-3 py-0.5 text-[10px] uppercase tracking-[0.2em] text-white">
               Admin
             </span>
           </div>
           <div className="flex items-center gap-4">
             <div className="hidden text-right text-xs sm:block">
-              <div className="text-brand-goldlight">{profile.full_name}</div>
-              <div className="text-muted-foreground">{profile.email}</div>
+              <div className="text-white">{profile.full_name}</div>
+              <div className="text-neutral-400">{profile.email}</div>
             </div>
             <NotificationBell href="/admin/notifications" />
             <SignOutLink />
@@ -57,7 +57,9 @@ export default async function AdminLayout({
       </header>
       <div className="flex flex-1">
         <AdminSidebar pendingCount={pendingCount ?? 0} />
-        <main className="flex-1 px-6 py-10 lg:px-10">{children}</main>
+        <main className="portal-main flex-1 px-6 py-10 lg:px-10">
+          {children}
+        </main>
       </div>
     </div>
   );
