@@ -5,9 +5,9 @@ Next.js 14 (App Router), Supabase, Tailwind CSS, shadcn/ui and Resend.
 Three roles: **admin**, **teacher**, **student**. All registrations are held
 as `pending` until an admin approves them.
 
-> **Status:** Phases 1–2 are implemented. Phases 3–6 (teacher portal,
-> student portal, PDF reports, polish) are scaffolded as routes/placeholders
-> and will be filled in over subsequent PRs.
+> **Status:** Phases 1–3 are implemented. Phases 4–6 (student portal,
+> PDF reports, polish) are scaffolded as routes/placeholders and will be
+> filled in over subsequent PRs.
 
 ---
 
@@ -229,13 +229,36 @@ relevant Phase 2+ API routes (`/api/auth/approve`, `/api/payments`, etc.).
 - ✅ `POST /api/auth/approve` for non-UI callers
 - ✅ All admin mutations write to `audit_logs`
 
+## What ships in Phase 3
+
+- ✅ Teacher layout with branded sidebar (gated to approved teachers only)
+- ✅ Teacher **overview** with stat cards (active courses, total students,
+  reports submitted) plus recent courses and recent reports panels
+- ✅ **My courses** list and per-course detail page with three tabs:
+  Students, Attendance, Grades
+- ✅ **Attendance sheet** — date picker + per-student status (present /
+  absent / late / excused) and notes, upserted by `(enrollment_id,
+  session_date)`
+- ✅ **Grade entry** — create assessment form (name, max score, weight,
+  due date) plus per-assessment grade table with score + feedback,
+  upserted by `(enrollment_id, assessment_id)`
+- ✅ **Students** list aggregating every student across the teacher's
+  courses with quick "Write report" links
+- ✅ **Reports** — submit mid-course / end-of-course / concern reports
+  with `is_visible_to_student` toggle, list of past reports
+- ✅ **Concern flag wiring** — submitting a `concern` report fires the
+  `sendTeacherReportToAdmin` Resend trigger and creates in-app
+  notifications for every approved admin (via service role to bypass RLS)
+- ✅ All teacher mutations enforce `assertTeacherOwnsCourse()` and check
+  the teacher actually has the student enrolled before writing a report
+
 ## Roadmap
 
 | Phase | Description                                                       | Status        |
 | ----- | ----------------------------------------------------------------- | ------------- |
 | 1     | Foundation — auth, schema, RLS, register/login/pending, Resend    | ✅ shipped    |
 | 2     | Admin dashboard, approvals, students/teachers/courses CRUD        | ✅ shipped    |
-| 3     | Teacher portal — courses, attendance, grades, reports             | ⏳ scaffolded |
+| 3     | Teacher portal — courses, attendance, grades, reports             | ✅ shipped    |
 | 4     | Student portal — courses, grades, payments, profile               | ⏳ scaffolded |
 | 5     | PDF reports via `@react-pdf/renderer`                              | ⏳ scaffolded |
 | 6     | Notifications, announcements, audit log, course resources         | ⏳ scaffolded |
