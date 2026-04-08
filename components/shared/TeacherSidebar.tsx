@@ -7,6 +7,7 @@ import {
   ClipboardList,
   FilePlus,
   Home,
+  Settings,
   Users,
 } from "lucide-react";
 
@@ -18,6 +19,7 @@ const NAV = [
   { href: "/teacher/students", label: "Students", icon: Users },
   { href: "/teacher/reports", label: "Reports", icon: ClipboardList },
   { href: "/teacher/reports/new", label: "Submit report", icon: FilePlus },
+  { href: "/teacher/settings", label: "Settings", icon: Settings },
 ];
 
 export function TeacherSidebar() {

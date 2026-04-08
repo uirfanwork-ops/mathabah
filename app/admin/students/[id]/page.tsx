@@ -36,10 +36,11 @@ export default async function StudentProfilePage({
   const { data: student } = await supabase
     .from("students")
     .select(
-      `id, student_number, date_of_birth, gender, address, city, country,
+      `id, student_number, date_of_birth, gender,
        guardian_name, guardian_phone, guardian_email, emergency_contact,
        enrollment_date, notes, profile_id,
-       profiles!inner(id, full_name, email, phone, status, created_at)`,
+       profiles!inner(id, full_name, email, phone, status, created_at,
+                      address, city, country)`,
     )
     .eq("id", params.id)
     .single();
@@ -157,14 +158,16 @@ export default async function StudentProfilePage({
                   student_number: student.student_number,
                   date_of_birth: student.date_of_birth,
                   gender: student.gender,
-                  address: student.address,
-                  city: student.city,
-                  country: student.country,
                   guardian_name: student.guardian_name,
                   guardian_phone: student.guardian_phone,
                   guardian_email: student.guardian_email,
                   emergency_contact: student.emergency_contact,
                   notes: student.notes,
+                }}
+                contact={{
+                  address: profile.address,
+                  city: profile.city,
+                  country: profile.country,
                 }}
               />
             </CardContent>

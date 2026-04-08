@@ -10,6 +10,7 @@ import {
   Home,
   Layers,
   Megaphone,
+  Settings,
   ShieldCheck,
   Users,
   Wallet,
@@ -28,6 +29,7 @@ const NAV = [
   { href: "/admin/reports", label: "Reports", icon: ClipboardList },
   { href: "/admin/announcements", label: "Announcements", icon: Megaphone },
   { href: "/admin/audit-log", label: "Audit Log", icon: FileClock },
+  { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
 export function AdminSidebar({ pendingCount }: { pendingCount?: number }) {

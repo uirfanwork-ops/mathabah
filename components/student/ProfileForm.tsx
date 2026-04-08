@@ -13,13 +13,15 @@ interface ProfileFormProps {
   profile: {
     full_name: string;
     phone: string | null;
+    // Contact address fields moved from `students` onto `profiles`
+    // in migration 0003.
+    address: string | null;
+    city: string | null;
+    country: string | null;
   };
   student: {
     date_of_birth: string | null;
     gender: string | null;
-    address: string | null;
-    city: string | null;
-    country: string | null;
     guardian_name: string | null;
     guardian_phone: string | null;
     guardian_email: string | null;
@@ -79,13 +81,13 @@ export function ProfileForm({ profile, student }: ProfileFormProps) {
           <Textarea
             id="address"
             name="address"
-            defaultValue={student.address ?? ""}
+            defaultValue={profile.address ?? ""}
             rows={2}
           />
         </div>
         <div className="grid gap-4 md:grid-cols-2">
-          <Field name="city" label="City" defaultValue={student.city} />
-          <Field name="country" label="Country" defaultValue={student.country} />
+          <Field name="city" label="City" defaultValue={profile.city} />
+          <Field name="country" label="Country" defaultValue={profile.country} />
         </div>
       </section>
 

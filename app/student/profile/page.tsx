@@ -21,14 +21,14 @@ export default async function StudentProfilePage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name, email, phone")
+    .select("full_name, email, phone, address, city, country")
     .eq("id", user.id)
     .single();
 
   const { data: student } = await supabase
     .from("students")
     .select(
-      "id, student_number, date_of_birth, gender, address, city, country, guardian_name, guardian_phone, guardian_email, emergency_contact, enrollment_date",
+      "id, student_number, date_of_birth, gender, guardian_name, guardian_phone, guardian_email, emergency_contact, enrollment_date",
     )
     .eq("profile_id", user.id)
     .single();

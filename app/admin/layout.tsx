@@ -20,12 +20,17 @@ export default async function AdminLayout({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name, email, role, status")
+    .select("full_name, email, role, status, phone, address")
     .eq("id", user.id)
     .single();
 
   if (!profile || profile.role !== "admin" || profile.status !== "approved") {
     redirect("/dashboard");
+  }
+
+  // Force users to fill in phone + address before they can use the portal.
+  if (!profile.phone || !profile.address) {
+    redirect("/auth/complete-profile");
   }
 
   const { count: pendingCount } = await supabase

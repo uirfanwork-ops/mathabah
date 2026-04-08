@@ -41,26 +41,28 @@ async function requireStudent() {
 export async function updateStudentProfile(formData: FormData) {
   const { supabase, profile, student } = await requireStudent();
 
-  // Full name + phone live on profiles (self_update policy allows this,
-  // as long as role doesn't change).
+  // Full name, phone, and address fields live on profiles (see migration
+  // 0003 — address/city/country were lifted off public.students onto
+  // public.profiles so every role has one place to store contact info).
   const fullName = String(formData.get("full_name") ?? "").trim();
   const phone = String(formData.get("phone") ?? "").trim() || null;
+  const address = String(formData.get("address") ?? "").trim() || null;
+  const city = String(formData.get("city") ?? "").trim() || null;
+  const country = String(formData.get("country") ?? "").trim() || null;
 
   if (!fullName) throw new Error("Full name is required");
 
   const { error: profileErr } = await supabase
     .from("profiles")
-    .update({ full_name: fullName, phone })
+    .update({ full_name: fullName, phone, address, city, country })
     .eq("id", profile.id);
   if (profileErr) throw profileErr;
 
-  // Contact fields live on students (self_update policy allows this).
+  // Student-specific fields (DOB, gender, guardian, emergency) stay on the
+  // students table.
   const studentFields = [
     "date_of_birth",
     "gender",
-    "address",
-    "city",
-    "country",
     "guardian_name",
     "guardian_phone",
     "guardian_email",

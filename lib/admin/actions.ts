@@ -164,13 +164,11 @@ export async function updateStudent(formData: FormData) {
   const studentId = String(formData.get("student_id") ?? "");
   if (!studentId) throw new Error("Missing student id");
 
-  const fields = [
+  // Student-specific columns that still live on public.students
+  const studentFields = [
     "student_number",
     "date_of_birth",
     "gender",
-    "address",
-    "city",
-    "country",
     "guardian_name",
     "guardian_phone",
     "guardian_email",
@@ -178,17 +176,46 @@ export async function updateStudent(formData: FormData) {
     "notes",
   ] as const;
 
-  const update: Record<string, string | null> = {};
-  for (const f of fields) {
+  const studentUpdate: Record<string, string | null> = {};
+  for (const f of studentFields) {
     const v = String(formData.get(f) ?? "").trim();
-    update[f] = v === "" ? null : v;
+    studentUpdate[f] = v === "" ? null : v;
   }
 
   const { error } = await supabase
     .from("students")
-    .update(update)
+    .update(studentUpdate)
     .eq("id", studentId);
   if (error) throw error;
+
+  // Contact fields (phone, address, city, country) live on profiles —
+  // resolve the profile id from the students row and update it.
+  const profileFields = ["phone", "address", "city", "country"] as const;
+  const profileUpdate: Record<string, string | null> = {};
+  let hasProfileUpdate = false;
+  for (const f of profileFields) {
+    if (formData.has(f)) {
+      const v = String(formData.get(f) ?? "").trim();
+      profileUpdate[f] = v === "" ? null : v;
+      hasProfileUpdate = true;
+    }
+  }
+
+  if (hasProfileUpdate) {
+    const { data: studentRow } = await supabase
+      .from("students")
+      .select("profile_id")
+      .eq("id", studentId)
+      .single();
+
+    if (studentRow?.profile_id) {
+      const { error: profileErr } = await supabase
+        .from("profiles")
+        .update(profileUpdate)
+        .eq("id", studentRow.profile_id);
+      if (profileErr) throw profileErr;
+    }
+  }
 
   await logAudit(admin.id, "update_student", "student", studentId);
   revalidatePath(`/admin/students/${studentId}`);

@@ -20,12 +20,16 @@ export default async function TeacherLayout({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name, email, role, status")
+    .select("full_name, email, role, status, phone, address")
     .eq("id", user.id)
     .single();
 
   if (!profile || profile.role !== "teacher" || profile.status !== "approved") {
     redirect("/dashboard");
+  }
+
+  if (!profile.phone || !profile.address) {
+    redirect("/auth/complete-profile");
   }
 
   return (

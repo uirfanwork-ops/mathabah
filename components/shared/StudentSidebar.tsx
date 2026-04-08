@@ -8,6 +8,7 @@ import {
   ClipboardList,
   GraduationCap,
   Home,
+  Settings,
   UserCircle,
   Wallet,
 } from "lucide-react";
@@ -22,6 +23,7 @@ const NAV = [
   { href: "/student/payments", label: "Payments", icon: Wallet },
   { href: "/student/reports", label: "Reports", icon: ClipboardList },
   { href: "/student/profile", label: "Profile", icon: UserCircle },
+  { href: "/student/settings", label: "Settings", icon: Settings },
 ];
 
 export function StudentSidebar() {

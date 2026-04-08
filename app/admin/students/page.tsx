@@ -28,15 +28,15 @@ export default async function StudentsPage({
   const supabase = createClient();
   const q = (searchParams.q ?? "").trim();
 
-  // Pull student-role profiles joined to their students row. We use a regular
-  // (left) join rather than `students!inner` so that a profile which has been
-  // promoted to role='student' but is briefly missing its students row still
-  // shows up — the UI renders "—" for the missing columns instead of the
-  // profile silently vanishing.
+  // Pull student-role profiles joined to their students row. Contact fields
+  // (city, country) live on profiles themselves after migration 0003; only
+  // student_number and enrollment_date need to come from the nested join.
+  // We use a regular (left) join rather than `students!inner` so a profile
+  // missing its students row still shows up (see fix 7d7cb8e).
   let query = supabase
     .from("profiles")
     .select(
-      "id, full_name, email, phone, status, created_at, students(id, student_number, city, country, enrollment_date)",
+      "id, full_name, email, phone, city, country, status, created_at, students(id, student_number, enrollment_date)",
     )
     .eq("role", "student")
     .order("created_at", { ascending: false });
@@ -104,9 +104,7 @@ export default async function StudentsPage({
                   </TableCell>
                   <TableCell>{student?.student_number ?? "—"}</TableCell>
                   <TableCell className="text-muted-foreground">
-                    {[student?.city, student?.country]
-                      .filter(Boolean)
-                      .join(", ") || "—"}
+                    {[row.city, row.country].filter(Boolean).join(", ") || "—"}
                   </TableCell>
                   <TableCell>
                     <Badge

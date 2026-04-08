@@ -15,18 +15,21 @@ interface StudentFormProps {
     student_number: string | null;
     date_of_birth: string | null;
     gender: string | null;
-    address: string | null;
-    city: string | null;
-    country: string | null;
     guardian_name: string | null;
     guardian_phone: string | null;
     guardian_email: string | null;
     emergency_contact: string | null;
     notes: string | null;
   };
+  // Contact fields live on the joined profile now (migration 0003).
+  contact: {
+    address: string | null;
+    city: string | null;
+    country: string | null;
+  };
 }
 
-export function StudentForm({ student }: StudentFormProps) {
+export function StudentForm({ student, contact }: StudentFormProps) {
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
 
@@ -60,8 +63,8 @@ export function StudentForm({ student }: StudentFormProps) {
           defaultValue={student.date_of_birth}
         />
         <Field name="gender" label="Gender" defaultValue={student.gender} />
-        <Field name="city" label="City" defaultValue={student.city} />
-        <Field name="country" label="Country" defaultValue={student.country} />
+        <Field name="city" label="City" defaultValue={contact.city} />
+        <Field name="country" label="Country" defaultValue={contact.country} />
         <Field
           name="guardian_name"
           label="Guardian name"
@@ -90,7 +93,7 @@ export function StudentForm({ student }: StudentFormProps) {
         <Textarea
           id="address"
           name="address"
-          defaultValue={student.address ?? ""}
+          defaultValue={contact.address ?? ""}
           rows={2}
         />
       </div>
