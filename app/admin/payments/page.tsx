@@ -79,11 +79,12 @@ export default async function PaymentsPage() {
                 <TableHead>Amount</TableHead>
                 <TableHead>Method</TableHead>
                 <TableHead>Reference</TableHead>
+                <TableHead className="text-right">Receipt</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {(payments ?? []).length === 0 ? (
-                <TableEmpty colSpan={5}>No payments recorded yet.</TableEmpty>
+                <TableEmpty colSpan={6}>No payments recorded yet.</TableEmpty>
               ) : (
                 (payments ?? []).map((p: any) => {
                   const student = Array.isArray(p.student)
@@ -111,6 +112,16 @@ export default async function PaymentsPage() {
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {p.reference ?? "—"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <a
+                          href={`/api/pdf/payment-receipt/${p.id}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-brand-goldlight hover:underline"
+                        >
+                          PDF →
+                        </a>
                       </TableCell>
                     </TableRow>
                   );

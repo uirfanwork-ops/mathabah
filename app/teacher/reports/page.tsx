@@ -75,11 +75,12 @@ export default async function TeacherReportsPage() {
                 <TableHead>Title</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Visible</TableHead>
+                <TableHead className="text-right">PDF</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {(reports ?? []).length === 0 ? (
-                <TableEmpty colSpan={6}>No reports submitted yet.</TableEmpty>
+                <TableEmpty colSpan={7}>No reports submitted yet.</TableEmpty>
               ) : (
                 (reports ?? []).map((r: any) => {
                   const s = Array.isArray(r.student) ? r.student[0] : r.student;
@@ -114,6 +115,16 @@ export default async function TeacherReportsPage() {
                         ) : (
                           <Badge variant="secondary">internal</Badge>
                         )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <a
+                          href={`/api/pdf/teacher-report/${r.id}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-brand-goldlight hover:underline"
+                        >
+                          PDF →
+                        </a>
                       </TableCell>
                     </TableRow>
                   );

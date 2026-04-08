@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { FileText } from "lucide-react";
 
 import { EnrollmentManager } from "@/components/admin/EnrollmentManager";
 import { StudentForm } from "@/components/admin/StudentForm";
@@ -132,6 +133,15 @@ export default async function StudentProfilePage({
             </div>
           </div>
         </div>
+        <a
+          href={`/api/pdf/student-report/${student.id}`}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-2 rounded-md border border-brand-gold/40 bg-brand-gold/10 px-4 py-2 text-sm font-medium text-brand-goldlight transition-colors hover:bg-brand-gold/20"
+        >
+          <FileText className="h-4 w-4" />
+          Report card PDF
+        </a>
       </div>
 
       <StudentTabs
@@ -234,11 +244,12 @@ export default async function StudentProfilePage({
                     <TableHead>Amount</TableHead>
                     <TableHead>Method</TableHead>
                     <TableHead>Reference</TableHead>
+                    <TableHead className="text-right">Receipt</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {(payments ?? []).length === 0 ? (
-                    <TableEmpty colSpan={4}>No payments recorded.</TableEmpty>
+                    <TableEmpty colSpan={5}>No payments recorded.</TableEmpty>
                   ) : (
                     (payments ?? []).map((p: any) => (
                       <TableRow key={p.id}>
@@ -251,6 +262,16 @@ export default async function StudentProfilePage({
                         </TableCell>
                         <TableCell className="text-muted-foreground">
                           {p.reference ?? "—"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <a
+                            href={`/api/pdf/payment-receipt/${p.id}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-brand-goldlight hover:underline"
+                          >
+                            PDF →
+                          </a>
                         </TableCell>
                       </TableRow>
                     ))
@@ -298,6 +319,14 @@ export default async function StudentProfilePage({
                           {r.is_visible_to_student && (
                             <Badge variant="success">visible</Badge>
                           )}
+                          <a
+                            href={`/api/pdf/teacher-report/${r.id}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-xs text-brand-goldlight hover:underline"
+                          >
+                            PDF →
+                          </a>
                         </div>
                       </div>
                       <p className="whitespace-pre-wrap text-sm text-foreground/90">

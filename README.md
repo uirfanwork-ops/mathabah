@@ -5,9 +5,10 @@ Next.js 14 (App Router), Supabase, Tailwind CSS, shadcn/ui and Resend.
 Three roles: **admin**, **teacher**, **student**. All registrations are held
 as `pending` until an admin approves them.
 
-> **Status:** Phases 1–4 are implemented. Phases 5–6 (PDF reports, polish)
-> are scaffolded as routes/placeholders and will be filled in over
-> subsequent PRs.
+> **Status:** Phases 1–5 are implemented. Phase 6 (polish —
+> notifications, announcements, audit log, course resources) is
+> scaffolded as routes/placeholders and will be filled in in the
+> final PR.
 
 ---
 
@@ -272,6 +273,43 @@ relevant Phase 2+ API routes (`/api/auth/approve`, `/api/payments`, etc.).
   `updateStudentProfile` which relies on the self-update RLS policies
   on `profiles` and `students`
 
+## What ships in Phase 5
+
+Three branded PDF documents rendered server-side with
+`@react-pdf/renderer`, protected by per-role access checks:
+
+- ✅ **Student report card** (`/api/pdf/student-report/[studentId]`) —
+  title block, meta (email, student number, enrolment date), overall
+  attendance callout, per-course sections with teacher, weighted
+  average, attendance tallies, and a full assessments / grades table
+  with scores and feedback
+- ✅ **Payment receipt** (`/api/pdf/payment-receipt/[paymentId]`) —
+  branded header, `MTB-XXXXXXXX` receipt number, received-from block,
+  large amount callout, method / reference / recorded-by details and
+  notes
+- ✅ **Teacher report** (`/api/pdf/teacher-report/[reportId]`) — header,
+  title, teacher + student meta, a red concern callout when the
+  report type is `concern`, body and a signature block
+- ✅ Shared `lib/pdf/styles.ts` + `lib/pdf/render.ts` — brand palette,
+  table primitives, lazy-imported `renderToBuffer` so the large
+  @react-pdf/renderer bundle only loads in the Node runtime of the
+  route handler
+- ✅ `experimental.serverComponentsExternalPackages` set to keep
+  `@react-pdf/renderer` out of the edge/client bundles
+- ✅ **Access control** per endpoint: admins see everything, teachers
+  only see report cards for students enrolled in their own courses
+  and only their own teacher reports, students only see their own
+  report card / payment receipts / reports where
+  `is_visible_to_student = true` (RLS does most of the work, with
+  explicit guards inside the route handlers)
+- ✅ **Download links wired in** across admin (student detail, payments
+  list), teacher (course detail per student, reports list) and
+  student (overview quick action, payments table, reports list)
+- 🐛 Fixed a Phase 3 bug in `app/teacher/my-courses/[id]/page.tsx` where
+  the students rollup was using `profiles.id` instead of `students.id`,
+  which broke the "Write report" link and would have broken the new
+  PDF link
+
 ## Roadmap
 
 | Phase | Description                                                       | Status        |
@@ -280,5 +318,5 @@ relevant Phase 2+ API routes (`/api/auth/approve`, `/api/payments`, etc.).
 | 2     | Admin dashboard, approvals, students/teachers/courses CRUD        | ✅ shipped    |
 | 3     | Teacher portal — courses, attendance, grades, reports             | ✅ shipped    |
 | 4     | Student portal — courses, grades, payments, profile               | ✅ shipped    |
-| 5     | PDF reports via `@react-pdf/renderer`                              | ⏳ scaffolded |
+| 5     | PDF reports via `@react-pdf/renderer`                              | ✅ shipped    |
 | 6     | Notifications, announcements, audit log, course resources         | ⏳ scaffolded |

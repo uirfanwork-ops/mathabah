@@ -4,6 +4,7 @@ import {
   BookOpen,
   CalendarCheck,
   ClipboardList,
+  FileDown,
   Wallet,
 } from "lucide-react";
 
@@ -135,12 +136,30 @@ export default async function StudentOverviewPage() {
           hint={`${(recentPayments ?? []).length} most recent`}
           icon={<Wallet className="h-5 w-5" />}
         />
-        <StatCard
-          label="Visible Reports"
-          value={(recentReports ?? []).length}
-          accent="red"
-          icon={<ClipboardList className="h-5 w-5" />}
-        />
+        <a
+          href={`/api/pdf/student-report/${student.id}`}
+          target="_blank"
+          rel="noreferrer"
+          className="group relative overflow-hidden rounded-lg border border-brand-gold/40 bg-brand-gold/10 p-5 text-left shadow-lg shadow-black/30 transition-colors hover:bg-brand-gold/20"
+        >
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.18em] text-brand-gold/80">
+                Quick action
+              </p>
+              <p className="mt-2 font-serif text-lg text-brand-goldlight">
+                Download report card
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {(recentReports ?? []).length} visible report
+                {(recentReports ?? []).length === 1 ? "" : "s"}
+              </p>
+            </div>
+            <div className="flex h-10 w-10 items-center justify-center rounded-md border border-brand-gold/40 bg-brand-gold/15 text-brand-gold">
+              <FileDown className="h-5 w-5" />
+            </div>
+          </div>
+        </a>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">

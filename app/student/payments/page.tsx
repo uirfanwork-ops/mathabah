@@ -112,11 +112,12 @@ export default async function StudentPaymentsPage() {
                 <TableHead>Method</TableHead>
                 <TableHead>Reference</TableHead>
                 <TableHead>Notes</TableHead>
+                <TableHead className="text-right">Receipt</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {rows.length === 0 ? (
-                <TableEmpty colSpan={5}>
+                <TableEmpty colSpan={6}>
                   No payments on file yet.
                 </TableEmpty>
               ) : (
@@ -136,6 +137,16 @@ export default async function StudentPaymentsPage() {
                     </TableCell>
                     <TableCell className="max-w-md text-muted-foreground">
                       {p.notes ?? "—"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <a
+                        href={`/api/pdf/payment-receipt/${p.id}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-brand-goldlight hover:underline"
+                      >
+                        PDF →
+                      </a>
                     </TableCell>
                   </TableRow>
                 ))

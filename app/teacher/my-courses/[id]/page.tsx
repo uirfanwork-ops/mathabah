@@ -75,7 +75,7 @@ export default async function TeacherCourseDetailPage({
       id: e.id,
       status: e.status,
       enrolled_at: e.enrolled_at,
-      student: profile ? { id: profile.id, full_name: profile.full_name } : null,
+      student: profile && s ? { id: s.id, full_name: profile.full_name } : null,
     };
   });
 
@@ -202,13 +202,25 @@ export default async function TeacherCourseDetailPage({
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button asChild size="sm" variant="ghost">
-                            <Link
-                              href={`/teacher/reports/new?student_id=${e.student?.id ?? ""}&course_id=${course.id}`}
-                            >
-                              Write report
-                            </Link>
-                          </Button>
+                          <div className="flex items-center justify-end gap-1">
+                            {e.student?.id && (
+                              <a
+                                href={`/api/pdf/student-report/${e.student.id}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-xs text-brand-goldlight hover:underline"
+                              >
+                                Report PDF
+                              </a>
+                            )}
+                            <Button asChild size="sm" variant="ghost">
+                              <Link
+                                href={`/teacher/reports/new?student_id=${e.student?.id ?? ""}&course_id=${course.id}`}
+                              >
+                                Write report
+                              </Link>
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))

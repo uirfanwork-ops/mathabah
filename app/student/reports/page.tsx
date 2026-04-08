@@ -88,11 +88,21 @@ export default async function StudentReportsPage() {
                       {formatDate(r.created_at)}
                     </p>
                   </div>
-                  <Badge
-                    variant={r.type === "concern" ? "destructive" : "outline"}
-                  >
-                    {TYPE_LABEL[r.type] ?? r.type}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge
+                      variant={r.type === "concern" ? "destructive" : "outline"}
+                    >
+                      {TYPE_LABEL[r.type] ?? r.type}
+                    </Badge>
+                    <a
+                      href={`/api/pdf/teacher-report/${r.id}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs text-brand-goldlight hover:underline"
+                    >
+                      PDF →
+                    </a>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
