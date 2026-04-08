@@ -5,12 +5,18 @@ import type { ReactElement } from "react";
  * Render a React PDF document to a Buffer on the server. The call into
  * @react-pdf/renderer is lazy so that the library — which is quite large —
  * only loads in the Node runtime of the route handler.
+ *
+ * We accept any `ReactElement` here rather than pinning to
+ * `ReactElement<DocumentProps>` because our wrapper components
+ * (StudentReportPDF, PaymentReceiptPDF, TeacherReportPDF) have their own
+ * prop shapes like `{ data: … }` — at runtime they render a `<Document>`
+ * which is what `@react-pdf/renderer` expects.
  */
 export async function renderPdfToBuffer(
-  element: ReactElement<DocumentProps>,
+  element: ReactElement<unknown>,
 ): Promise<Buffer> {
   const { renderToBuffer } = await import("@react-pdf/renderer");
-  return renderToBuffer(element);
+  return renderToBuffer(element as ReactElement<DocumentProps>);
 }
 
 /**
