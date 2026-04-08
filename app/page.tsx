@@ -22,9 +22,9 @@ export default function HomePage() {
         <span className="rounded-full border border-brand-gold/30 bg-brand-gold/5 px-4 py-1 text-xs uppercase tracking-[0.25em] text-brand-gold">
           Student Management
         </span>
-        <h1 className="max-w-3xl font-serif text-5xl font-semibold text-brand-parchment md:text-6xl">
-          A modern home for the{" "}
-          <span className="gold-text">Mathabah Institute</span>
+        <h1 className="max-w-3xl text-5xl font-semibold text-brand-parchment md:text-6xl">
+          Mathabah Learning Centre{" "}
+          <span className="gold-text">Student Portal</span>
         </h1>
         <p className="max-w-xl text-lg text-muted-foreground">
           Admissions, enrolments, grading and reporting — built for our admins,
