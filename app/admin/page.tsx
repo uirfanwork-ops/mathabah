@@ -1,64 +1,177 @@
-import { redirect } from "next/navigation";
-
-import { createClient } from "@/lib/supabase/server";
-import { RoleShell } from "@/components/shared/RoleShell";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  BookOpen,
+  GraduationCap,
+  ShieldCheck,
+  Users,
+  Wallet,
+} from "lucide-react";
 
-export const metadata = { title: "Admin" };
+import { StatCard } from "@/components/shared/StatCard";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { createClient } from "@/lib/supabase/server";
+import { formatCurrency, formatDate } from "@/lib/utils";
 
-export default async function AdminHomePage() {
+export const metadata = { title: "Admin Overview" };
+
+export default async function AdminOverviewPage() {
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/auth/login");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("full_name, email")
-    .eq("id", user.id)
-    .single();
+  // Stats — run in parallel
+  const [
+    { count: totalStudents },
+    { count: totalTeachers },
+    { count: totalCourses },
+    { count: pendingApprovals },
+    { data: revenueRows },
+    { data: latestRegistrations },
+  ] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("role", "student")
+      .eq("status", "approved"),
+    supabase
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("role", "teacher")
+      .eq("status", "approved"),
+    supabase.from("courses").select("id", { count: "exact", head: true }),
+    supabase
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "pending"),
+    supabase
+      .from("payments")
+      .select("amount, payment_date")
+      .gte(
+        "payment_date",
+        new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+          .toISOString()
+          .slice(0, 10),
+      ),
+    supabase
+      .from("profiles")
+      .select("id, full_name, email, role, status, created_at")
+      .order("created_at", { ascending: false })
+      .limit(6),
+  ]);
+
+  const monthRevenue = (revenueRows ?? []).reduce(
+    (sum, r: { amount: number | string }) => sum + Number(r.amount ?? 0),
+    0,
+  );
 
   return (
-    <RoleShell
-      role="admin"
-      fullName={profile?.full_name ?? ""}
-      email={profile?.email ?? user.email ?? ""}
-    >
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-semibold text-brand-parchment">
-            Admin Dashboard
-          </h1>
-          <p className="text-muted-foreground">
-            Stats, approvals and management — coming in Phase 2.
-          </p>
-        </div>
-        <div className="gold-divider" />
+    <div className="space-y-8">
+      <div>
+        <h1 className="font-serif text-3xl font-semibold text-brand-parchment">
+          Welcome back
+        </h1>
+        <p className="text-muted-foreground">
+          A snapshot of Mathabah Institute today.
+        </p>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <StatCard
+          label="Students"
+          value={totalStudents ?? 0}
+          hint="approved"
+          icon={<Users className="h-5 w-5" />}
+        />
+        <StatCard
+          label="Teachers"
+          value={totalTeachers ?? 0}
+          hint="approved"
+          icon={<GraduationCap className="h-5 w-5" />}
+        />
+        <StatCard
+          label="Courses"
+          value={totalCourses ?? 0}
+          icon={<BookOpen className="h-5 w-5" />}
+        />
+        <StatCard
+          label="Pending Approvals"
+          value={pendingApprovals ?? 0}
+          accent="red"
+          icon={<ShieldCheck className="h-5 w-5" />}
+        />
+        <StatCard
+          label="Revenue This Month"
+          value={formatCurrency(monthRevenue)}
+          accent="emerald"
+          icon={<Wallet className="h-5 w-5" />}
+        />
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Phase 1 complete</CardTitle>
-            <CardDescription>
-              Auth, RLS, registration approval flow and admin notification email
-              are wired up. Phase 2 will land the stats overview, approvals
-              dashboard, and student / teacher / course management here.
-            </CardDescription>
+            <CardTitle>Latest registrations</CardTitle>
           </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            Routes scaffolded for Phase 2: <code>/admin/students</code>,{" "}
-            <code>/admin/teachers</code>, <code>/admin/courses</code>,{" "}
-            <code>/admin/programs</code>, <code>/admin/payments</code>,{" "}
-            <code>/admin/reports</code>, <code>/admin/approvals</code>,{" "}
-            <code>/admin/announcements</code>.
+          <CardContent className="space-y-3">
+            {(latestRegistrations ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No registrations yet.
+              </p>
+            ) : (
+              (latestRegistrations ?? []).map((p) => (
+                <div
+                  key={p.id}
+                  className="flex items-center justify-between rounded-md border border-brand-gold/10 bg-brand-ink/30 p-3"
+                >
+                  <div>
+                    <div className="font-medium text-brand-goldlight">
+                      {p.full_name}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {p.email} • {formatDate(p.created_at)}
+                    </div>
+                  </div>
+                  <Badge
+                    variant={
+                      p.status === "approved"
+                        ? "success"
+                        : p.status === "rejected"
+                          ? "destructive"
+                          : "warning"
+                    }
+                  >
+                    {p.status}
+                  </Badge>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Quick links</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2 text-sm">
+              <li className="text-muted-foreground">
+                Review pending accounts in{" "}
+                <span className="text-brand-goldlight">/admin/approvals</span>
+              </li>
+              <li className="text-muted-foreground">
+                Add a new student in{" "}
+                <span className="text-brand-goldlight">/admin/students</span>
+              </li>
+              <li className="text-muted-foreground">
+                Record a payment in{" "}
+                <span className="text-brand-goldlight">/admin/payments</span>
+              </li>
+              <li className="text-muted-foreground">
+                Create a course in{" "}
+                <span className="text-brand-goldlight">/admin/courses</span>
+              </li>
+            </ul>
           </CardContent>
         </Card>
       </div>
-    </RoleShell>
+    </div>
   );
 }

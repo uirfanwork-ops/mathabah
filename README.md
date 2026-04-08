@@ -5,9 +5,9 @@ Next.js 14 (App Router), Supabase, Tailwind CSS, shadcn/ui and Resend.
 Three roles: **admin**, **teacher**, **student**. All registrations are held
 as `pending` until an admin approves them.
 
-> **Status:** Phase 1 (Foundation) is implemented in this commit. Phases 2–6
-> (admin dashboards, teacher portal, student portal, PDF reports, polish) are
-> scaffolded as routes/placeholders and will be filled in over subsequent PRs.
+> **Status:** Phases 1–2 are implemented. Phases 3–6 (teacher portal,
+> student portal, PDF reports, polish) are scaffolded as routes/placeholders
+> and will be filled in over subsequent PRs.
 
 ---
 
@@ -205,12 +205,36 @@ relevant Phase 2+ API routes (`/api/auth/approve`, `/api/payments`, etc.).
 
 ---
 
+## What ships in Phase 2
+
+- ✅ Admin layout with branded sidebar (`/admin/*` is fully gated by middleware
+  + layout and only reachable by approved admins)
+- ✅ Admin **overview** with five stat cards (students, teachers, courses,
+  pending approvals, revenue this month) and latest registrations
+- ✅ **Approvals dashboard** with approve / reject server actions, role
+  reassignment at approval time, audit log entries, and Resend welcome /
+  rejection emails
+- ✅ **Students list** with name/email search and the student detail page
+  exposing five tabs: Profile (editable), Enrollments, Grades, Payments,
+  Reports
+- ✅ **Teachers list** + teacher detail page with Profile / Courses /
+  Reports tabs
+- ✅ **Programs** management with inline create + delete
+- ✅ **Courses** management with create form (program + teacher binding) and
+  per-course detail showing enrolled students
+- ✅ **Payments** — record with confirmation email to the student + recent
+  payments table
+- ✅ **Enrollment manager** — assign students to courses from the student
+  detail page
+- ✅ `POST /api/auth/approve` for non-UI callers
+- ✅ All admin mutations write to `audit_logs`
+
 ## Roadmap
 
 | Phase | Description                                                       | Status        |
 | ----- | ----------------------------------------------------------------- | ------------- |
-| 1     | Foundation — auth, schema, RLS, register/login/pending, Resend    | ✅ this PR    |
-| 2     | Admin dashboard, approvals, students/teachers/courses CRUD        | ⏳ scaffolded |
+| 1     | Foundation — auth, schema, RLS, register/login/pending, Resend    | ✅ shipped    |
+| 2     | Admin dashboard, approvals, students/teachers/courses CRUD        | ✅ shipped    |
 | 3     | Teacher portal — courses, attendance, grades, reports             | ⏳ scaffolded |
 | 4     | Student portal — courses, grades, payments, profile               | ⏳ scaffolded |
 | 5     | PDF reports via `@react-pdf/renderer`                              | ⏳ scaffolded |
