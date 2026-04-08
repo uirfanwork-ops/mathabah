@@ -28,11 +28,15 @@ export default async function StudentsPage({
   const supabase = createClient();
   const q = (searchParams.q ?? "").trim();
 
-  // Pull approved student profiles, joined to their student row
+  // Pull student-role profiles joined to their students row. We use a regular
+  // (left) join rather than `students!inner` so that a profile which has been
+  // promoted to role='student' but is briefly missing its students row still
+  // shows up — the UI renders "—" for the missing columns instead of the
+  // profile silently vanishing.
   let query = supabase
     .from("profiles")
     .select(
-      "id, full_name, email, phone, status, created_at, students!inner(id, student_number, city, country, enrollment_date)",
+      "id, full_name, email, phone, status, created_at, students(id, student_number, city, country, enrollment_date)",
     )
     .eq("role", "student")
     .order("created_at", { ascending: false });

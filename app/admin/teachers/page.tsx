@@ -24,10 +24,13 @@ export default async function TeachersPage({
   const supabase = createClient();
   const q = (searchParams.q ?? "").trim();
 
+  // Left join to `teachers` so a teacher-role profile missing its teachers
+  // row still shows up in the list (see /admin/students/page.tsx for the
+  // same reasoning).
   let query = supabase
     .from("profiles")
     .select(
-      "id, full_name, email, phone, status, created_at, teachers!inner(id, employee_number, specialization, hire_date)",
+      "id, full_name, email, phone, status, created_at, teachers(id, employee_number, specialization, hire_date)",
     )
     .eq("role", "teacher")
     .order("created_at", { ascending: false });

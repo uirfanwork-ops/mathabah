@@ -81,15 +81,21 @@ export async function approveAccount(formData: FormData) {
     .eq("id", targetId);
   if (updateError) throw updateError;
 
-  // Create role-specific row if missing
+  // Create the role-specific row if it doesn't already exist. We throw on
+  // error here rather than letting it fail silently — a missing students /
+  // teachers row leaves the user invisible on /admin/students (because the
+  // list pages join through those tables) and breaks every downstream
+  // operation that expects to resolve a student_id / teacher_id.
   if (role === "student") {
-    await svc
+    const { error: roleRowError } = await svc
       .from("students")
       .upsert({ profile_id: targetId }, { onConflict: "profile_id" });
+    if (roleRowError) throw roleRowError;
   } else if (role === "teacher") {
-    await svc
+    const { error: roleRowError } = await svc
       .from("teachers")
       .upsert({ profile_id: targetId }, { onConflict: "profile_id" });
+    if (roleRowError) throw roleRowError;
   }
 
   await logAudit(admin.id, "approve_account", "profile", targetId, { role });
