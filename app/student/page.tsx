@@ -106,7 +106,7 @@ export default async function StudentOverviewPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-serif text-3xl font-semibold text-brand-parchment">
+        <h1 className="text-3xl font-semibold text-brand-parchment">
           As-salāmu ʿalaykum, {profile?.full_name?.split(" ")[0] ?? "student"}
         </h1>
         <p className="text-muted-foreground">
@@ -148,7 +148,7 @@ export default async function StudentOverviewPage() {
               <p className="text-xs uppercase tracking-[0.18em] text-brand-gold/80">
                 Quick action
               </p>
-              <p className="mt-2 font-serif text-lg text-brand-goldlight">
+              <p className="mt-2 text-lg text-brand-goldlight">
                 Download report card
               </p>
               <p className="mt-1 text-xs text-muted-foreground">

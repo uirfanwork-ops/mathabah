@@ -20,7 +20,7 @@ export function AccountApprovalCard({ profile }: AccountApprovalCardProps) {
     <div className="rounded-lg border border-brand-gold/20 bg-card/70 p-5 shadow-md shadow-black/30">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full border border-brand-gold/40 bg-brand-gold/10 font-serif text-lg text-brand-gold">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full border border-brand-gold/40 bg-brand-gold/10 text-lg text-brand-gold">
             {getInitials(profile.full_name)}
           </div>
           <div>

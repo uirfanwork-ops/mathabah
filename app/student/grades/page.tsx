@@ -124,7 +124,7 @@ export default async function StudentGradesPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-serif text-3xl font-semibold text-brand-parchment">
+        <h1 className="text-3xl font-semibold text-brand-parchment">
           Grades
         </h1>
         <p className="text-muted-foreground">
@@ -162,7 +162,7 @@ export default async function StudentGradesPage() {
                   <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
                     Weighted avg
                   </p>
-                  <p className="font-serif text-2xl text-brand-goldlight">
+                  <p className="text-2xl text-brand-goldlight">
                     {group.weightedAvg.toFixed(1)}%
                   </p>
                 </div>

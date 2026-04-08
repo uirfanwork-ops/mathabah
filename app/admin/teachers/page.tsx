@@ -31,7 +31,7 @@ export default async function TeachersPage({
   let query = supabase
     .from("profiles")
     .select(
-      "id, full_name, email, phone, status, created_at, teachers(id, employee_number, specialization, hire_date)",
+      "id, full_name, email, phone, status, created_at, display_id, teachers(id, employee_number, specialization, hire_date)",
     )
     .eq("role", "teacher")
     .order("created_at", { ascending: false });
@@ -67,6 +67,7 @@ export default async function TeachersPage({
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead>ID</TableHead>
             <TableHead>Name</TableHead>
             <TableHead>Email</TableHead>
             <TableHead>Employee #</TableHead>
@@ -77,7 +78,7 @@ export default async function TeachersPage({
         </TableHeader>
         <TableBody>
           {(rows ?? []).length === 0 ? (
-            <TableEmpty colSpan={6}>
+            <TableEmpty colSpan={7}>
               {q ? "No teachers match your search." : "No teachers yet."}
             </TableEmpty>
           ) : (
@@ -87,6 +88,9 @@ export default async function TeachersPage({
                 : row.teachers;
               return (
                 <TableRow key={row.id}>
+                  <TableCell className="font-mono text-xs text-brand-gold">
+                    {row.display_id ?? "—"}
+                  </TableCell>
                   <TableCell>
                     <Link
                       href={`/admin/teachers/${teacher?.id ?? row.id}`}

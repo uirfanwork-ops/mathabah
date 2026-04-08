@@ -71,7 +71,7 @@ export default async function NewTeacherReportPage({
         ← Back to reports
       </Link>
       <div>
-        <h1 className="font-serif text-3xl font-semibold text-brand-parchment">
+        <h1 className="text-3xl font-semibold text-brand-parchment">
           Submit a report
         </h1>
         <p className="text-muted-foreground">

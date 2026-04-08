@@ -29,7 +29,7 @@ export function StatCard({
           <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
             {label}
           </p>
-          <p className="mt-2 font-serif text-3xl font-semibold text-brand-parchment">
+          <p className="mt-2 text-3xl font-semibold text-brand-parchment">
             {value}
           </p>
           {hint && (

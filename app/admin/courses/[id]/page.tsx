@@ -73,7 +73,7 @@ export default async function CourseDetailPage({
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="font-serif text-3xl font-semibold text-brand-parchment">
+            <h1 className="text-3xl font-semibold text-brand-parchment">
               {course.name}
             </h1>
             {course.code && (
@@ -87,12 +87,17 @@ export default async function CourseDetailPage({
             {teacherProfile?.full_name ?? "Unassigned teacher"}
           </p>
         </div>
-        <form action={deleteCourse}>
-          <input type="hidden" name="id" value={course.id} />
-          <Button type="submit" variant="destructive" size="sm">
-            Delete course
+        <div className="flex items-center gap-2">
+          <Button asChild variant="secondary" size="sm">
+            <Link href={`/admin/courses/${course.id}/edit`}>Edit course</Link>
           </Button>
-        </form>
+          <form action={deleteCourse}>
+            <input type="hidden" name="id" value={course.id} />
+            <Button type="submit" variant="destructive" size="sm">
+              Delete course
+            </Button>
+          </form>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">

@@ -20,7 +20,7 @@ export default async function AdminLayout({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name, email, role, status, phone, address")
+    .select("full_name, email, role, status, phone, address, display_id")
     .eq("id", user.id)
     .single();
 
@@ -53,7 +53,10 @@ export default async function AdminLayout({
           <div className="flex items-center gap-4">
             <div className="hidden text-right text-xs sm:block">
               <div className="text-white">{profile.full_name}</div>
-              <div className="text-neutral-400">{profile.email}</div>
+              <div className="text-neutral-400">
+                {profile.display_id ? `${profile.display_id} · ` : ""}
+                {profile.email}
+              </div>
             </div>
             <NotificationBell href="/admin/notifications" />
             <SignOutLink />

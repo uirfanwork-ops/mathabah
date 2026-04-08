@@ -51,7 +51,7 @@ export default async function CoursesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-serif text-3xl font-semibold text-brand-parchment">
+        <h1 className="text-3xl font-semibold text-brand-parchment">
           Courses
         </h1>
         <p className="text-muted-foreground">Create and manage courses.</p>
@@ -83,11 +83,12 @@ export default async function CoursesPage() {
                 <TableHead>Teacher</TableHead>
                 <TableHead>Schedule</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead className="w-16"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {(courses ?? []).length === 0 ? (
-                <TableEmpty colSpan={6}>No courses yet.</TableEmpty>
+                <TableEmpty colSpan={7}>No courses yet.</TableEmpty>
               ) : (
                 (courses ?? []).map((c: any) => {
                   const program = Array.isArray(c.program)
@@ -125,6 +126,14 @@ export default async function CoursesPage() {
                         <Badge variant={c.is_active ? "success" : "secondary"}>
                           {c.is_active ? "active" : "archived"}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Link
+                          href={`/admin/courses/${c.id}/edit`}
+                          className="text-xs text-brand-goldlight hover:underline"
+                        >
+                          Edit
+                        </Link>
                       </TableCell>
                     </TableRow>
                   );

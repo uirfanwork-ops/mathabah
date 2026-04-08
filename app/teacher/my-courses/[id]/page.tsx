@@ -149,7 +149,7 @@ export default async function TeacherCourseDetailPage({
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="font-serif text-3xl font-semibold text-brand-parchment">
+            <h1 className="text-3xl font-semibold text-brand-parchment">
               {course.name}
             </h1>
             {course.code && (

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
 import {
@@ -439,6 +440,33 @@ export async function createProgram(formData: FormData) {
   revalidatePath("/admin/programs");
 }
 
+export async function updateProgram(formData: FormData) {
+  const { profile: admin, supabase } = await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
+  if (!id) throw new Error("Missing program id");
+  if (!name) throw new Error("Name is required");
+
+  const { error } = await supabase
+    .from("programs")
+    .update({
+      name,
+      code: String(formData.get("code") ?? "").trim() || null,
+      description: String(formData.get("description") ?? "").trim() || null,
+      duration_months:
+        Number(formData.get("duration_months")) > 0
+          ? Number(formData.get("duration_months"))
+          : null,
+    })
+    .eq("id", id);
+  if (error) throw error;
+
+  await logAudit(admin.id, "update_program", "program", id);
+  revalidatePath("/admin/programs");
+  revalidatePath(`/admin/programs/${id}`);
+  redirect("/admin/programs");
+}
+
 export async function deleteProgram(formData: FormData) {
   const { profile: admin, supabase } = await requireAdmin();
   const id = String(formData.get("id") ?? "");
@@ -482,6 +510,42 @@ export async function createCourse(formData: FormData) {
 
   await logAudit(admin.id, "create_course", "course", data?.id ?? null);
   revalidatePath("/admin/courses");
+}
+
+export async function updateCourse(formData: FormData) {
+  const { profile: admin, supabase } = await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
+  if (!id) throw new Error("Missing course id");
+  if (!name) throw new Error("Name is required");
+
+  const programId = String(formData.get("program_id") ?? "") || null;
+  const teacherId = String(formData.get("teacher_id") ?? "") || null;
+
+  const { error } = await supabase
+    .from("courses")
+    .update({
+      name,
+      code: String(formData.get("code") ?? "").trim() || null,
+      description: String(formData.get("description") ?? "").trim() || null,
+      schedule: String(formData.get("schedule") ?? "").trim() || null,
+      capacity:
+        Number(formData.get("capacity")) > 0
+          ? Number(formData.get("capacity"))
+          : null,
+      start_date: String(formData.get("start_date") ?? "") || null,
+      end_date: String(formData.get("end_date") ?? "") || null,
+      is_active: formData.get("is_active") === "on",
+      program_id: programId,
+      teacher_id: teacherId,
+    })
+    .eq("id", id);
+  if (error) throw error;
+
+  await logAudit(admin.id, "update_course", "course", id);
+  revalidatePath("/admin/courses");
+  revalidatePath(`/admin/courses/${id}`);
+  redirect(`/admin/courses/${id}`);
 }
 
 export async function deleteCourse(formData: FormData) {

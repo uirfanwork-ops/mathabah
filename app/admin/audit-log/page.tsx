@@ -69,7 +69,7 @@ export default async function AuditLogPage({
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="font-serif text-3xl font-semibold text-brand-parchment">
+          <h1 className="text-3xl font-semibold text-brand-parchment">
             Audit log
           </h1>
           <p className="text-muted-foreground">

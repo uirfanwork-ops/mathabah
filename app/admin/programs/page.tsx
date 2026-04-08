@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { createProgram, deleteProgram } from "@/lib/admin/actions";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,7 +34,7 @@ export default async function ProgramsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-serif text-3xl font-semibold text-brand-parchment">
+        <h1 className="text-3xl font-semibold text-brand-parchment">
           Programs
         </h1>
         <p className="text-muted-foreground">
@@ -83,7 +85,7 @@ export default async function ProgramsPage() {
                 <TableHead>Name</TableHead>
                 <TableHead>Duration</TableHead>
                 <TableHead>Description</TableHead>
-                <TableHead className="w-24"></TableHead>
+                <TableHead className="w-40"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -105,12 +107,19 @@ export default async function ProgramsPage() {
                       {p.description ?? "—"}
                     </TableCell>
                     <TableCell>
-                      <form action={deleteProgram}>
-                        <input type="hidden" name="id" value={p.id} />
-                        <Button type="submit" variant="ghost" size="sm">
-                          Delete
+                      <div className="flex items-center justify-end gap-1">
+                        <Button asChild variant="ghost" size="sm">
+                          <Link href={`/admin/programs/${p.id}/edit`}>
+                            Edit
+                          </Link>
                         </Button>
-                      </form>
+                        <form action={deleteProgram}>
+                          <input type="hidden" name="id" value={p.id} />
+                          <Button type="submit" variant="ghost" size="sm">
+                            Delete
+                          </Button>
+                        </form>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))

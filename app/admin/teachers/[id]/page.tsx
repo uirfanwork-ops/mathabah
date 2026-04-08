@@ -35,7 +35,7 @@ export default async function TeacherProfilePage({
     .from("teachers")
     .select(
       `id, employee_number, bio, specialization, qualifications, hire_date, profile_id,
-       profiles!inner(id, full_name, email, phone, status, created_at)`,
+       profiles!inner(id, full_name, email, phone, status, created_at, display_id)`,
     )
     .eq("id", params.id)
     .single();
@@ -69,15 +69,20 @@ export default async function TeacherProfilePage({
       </Link>
 
       <div className="flex items-start gap-4">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full border border-brand-gold/40 bg-brand-gold/10 font-serif text-2xl text-brand-gold">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full border border-brand-gold/40 bg-brand-gold/10 text-2xl text-brand-gold">
           {getInitials(profile.full_name)}
         </div>
         <div>
-          <h1 className="font-serif text-3xl font-semibold text-brand-parchment">
+          <h1 className="text-3xl font-semibold text-brand-parchment">
             {profile.full_name}
           </h1>
           <p className="text-sm text-muted-foreground">{profile.email}</p>
           <div className="mt-1 flex items-center gap-2">
+            {profile.display_id && (
+              <Badge variant="outline" className="font-mono">
+                {profile.display_id}
+              </Badge>
+            )}
             <Badge variant="success">{profile.status}</Badge>
             {teacher.employee_number && (
               <Badge variant="outline">#{teacher.employee_number}</Badge>

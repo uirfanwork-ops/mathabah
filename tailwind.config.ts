@@ -17,8 +17,11 @@ const config: Config = {
     },
     extend: {
       fontFamily: {
+        // Entire app is sans-serif; `serif` is intentionally aliased to the
+        // sans stack so any stray `font-serif` className still renders the
+        // correct family without a second font load.
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
-        serif: ["var(--font-serif)", "Georgia", "serif"],
+        serif: ["var(--font-sans)", "system-ui", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",

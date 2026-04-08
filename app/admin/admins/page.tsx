@@ -31,7 +31,7 @@ export default async function AdminsPage({
 
   let query = supabase
     .from("profiles")
-    .select("id, full_name, email, phone, status, created_at")
+    .select("id, full_name, email, phone, status, created_at, display_id")
     .eq("role", "admin")
     .order("created_at", { ascending: false });
 
@@ -66,6 +66,7 @@ export default async function AdminsPage({
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead>ID</TableHead>
             <TableHead>Name</TableHead>
             <TableHead>Email</TableHead>
             <TableHead>Phone</TableHead>
@@ -75,12 +76,15 @@ export default async function AdminsPage({
         </TableHeader>
         <TableBody>
           {(rows ?? []).length === 0 ? (
-            <TableEmpty colSpan={5}>
+            <TableEmpty colSpan={6}>
               {q ? "No admins match your search." : "No admins yet."}
             </TableEmpty>
           ) : (
             (rows ?? []).map((row) => (
               <TableRow key={row.id}>
+                <TableCell className="font-mono text-xs text-brand-gold">
+                  {row.display_id ?? "—"}
+                </TableCell>
                 <TableCell className="font-medium">{row.full_name}</TableCell>
                 <TableCell className="text-muted-foreground">
                   {row.email}

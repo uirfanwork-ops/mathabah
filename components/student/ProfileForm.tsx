@@ -49,7 +49,7 @@ export function ProfileForm({ profile, student }: ProfileFormProps) {
       className="space-y-6"
     >
       <section className="space-y-4">
-        <h3 className="font-serif text-lg text-brand-goldlight">
+        <h3 className="text-lg text-brand-goldlight">
           Personal details
         </h3>
         <div className="grid gap-4 md:grid-cols-2">
@@ -75,7 +75,7 @@ export function ProfileForm({ profile, student }: ProfileFormProps) {
       </section>
 
       <section className="space-y-4">
-        <h3 className="font-serif text-lg text-brand-goldlight">Address</h3>
+        <h3 className="text-lg text-brand-goldlight">Address</h3>
         <div className="space-y-2">
           <Label htmlFor="address">Street address</Label>
           <Textarea
@@ -92,7 +92,7 @@ export function ProfileForm({ profile, student }: ProfileFormProps) {
       </section>
 
       <section className="space-y-4">
-        <h3 className="font-serif text-lg text-brand-goldlight">
+        <h3 className="text-lg text-brand-goldlight">
           Guardian &amp; emergency
         </h3>
         <div className="grid gap-4 md:grid-cols-2">

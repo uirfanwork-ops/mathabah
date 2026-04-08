@@ -84,7 +84,7 @@ export default async function StudentCourseDetailPage({
           >
             ← Back to my courses
           </Link>
-          <h1 className="mt-2 font-serif text-3xl font-semibold text-brand-parchment">
+          <h1 className="mt-2 text-3xl font-semibold text-brand-parchment">
             {course.name}
           </h1>
         </div>
@@ -159,7 +159,7 @@ export default async function StudentCourseDetailPage({
         </Link>
         <div className="mt-2 flex items-start justify-between gap-4">
           <div>
-            <h1 className="font-serif text-3xl font-semibold text-brand-parchment">
+            <h1 className="text-3xl font-semibold text-brand-parchment">
               {course.code ? `${course.code} — ` : ""}
               {course.name}
             </h1>
