@@ -157,6 +157,139 @@ export async function rejectAccount(formData: FormData) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Create users (admin provisions student / teacher / admin accounts directly,
+// bypassing the public register + approve flow)
+// ─────────────────────────────────────────────────────────────────────────────
+export async function createUser(formData: FormData) {
+  const { profile: admin } = await requireAdmin();
+
+  const role = String(formData.get("role") ?? "") as
+    | "student"
+    | "teacher"
+    | "admin";
+  if (!["student", "teacher", "admin"].includes(role)) {
+    throw new Error("Invalid role");
+  }
+
+  // Common fields
+  const email = String(formData.get("email") ?? "")
+    .trim()
+    .toLowerCase();
+  const password = String(formData.get("password") ?? "");
+  const fullName = String(formData.get("full_name") ?? "").trim();
+  const phone = String(formData.get("phone") ?? "").trim();
+  const address = String(formData.get("address") ?? "").trim();
+  const city = String(formData.get("city") ?? "").trim();
+  const country = String(formData.get("country") ?? "").trim();
+
+  if (!email) throw new Error("Email is required.");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new Error("Email is not valid.");
+  }
+  if (password.length < 8) {
+    throw new Error("Password must be at least 8 characters.");
+  }
+  if (!fullName) throw new Error("Full name is required.");
+  if (!phone) throw new Error("Phone number is required.");
+  if (!address) throw new Error("Address is required.");
+
+  const svc = createServiceRoleClient();
+
+  // 1. Create the auth user with the password pre-set and the email already
+  //    confirmed so they can log in immediately with no confirmation step.
+  const { data: created, error: createErr } = await svc.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+    user_metadata: { full_name: fullName },
+  });
+  if (createErr) throw new Error(createErr.message);
+  const newUserId = created.user?.id;
+  if (!newUserId) throw new Error("Failed to create user.");
+
+  // 2. The handle_new_user trigger (see 0001_initial_schema.sql) auto-inserts
+  //    a profiles row with role='student' / status='pending'. Update it to
+  //    the real role / contact info the admin just entered.
+  const { error: updErr } = await svc
+    .from("profiles")
+    .update({
+      role,
+      status: "approved",
+      full_name: fullName,
+      phone,
+      address,
+      city: city || null,
+      country: country || null,
+      approved_by: admin.id,
+      approved_at: new Date().toISOString(),
+    })
+    .eq("id", newUserId);
+
+  if (updErr) {
+    // Roll back the auth user so we don't leave an orphan that can log in.
+    await svc.auth.admin.deleteUser(newUserId);
+    throw new Error(updErr.message);
+  }
+
+  // 3. Create the role-specific row so downstream list pages and joins work.
+  if (role === "student") {
+    const studentFields = [
+      "student_number",
+      "date_of_birth",
+      "gender",
+      "guardian_name",
+      "guardian_phone",
+      "guardian_email",
+      "emergency_contact",
+      "notes",
+    ] as const;
+    const studentInsert: Record<string, string | null> = {
+      profile_id: newUserId,
+    };
+    for (const f of studentFields) {
+      const v = String(formData.get(f) ?? "").trim();
+      if (v !== "") studentInsert[f] = v;
+    }
+    const { error: sErr } = await svc.from("students").insert(studentInsert);
+    if (sErr) {
+      await svc.auth.admin.deleteUser(newUserId);
+      throw new Error(sErr.message);
+    }
+  } else if (role === "teacher") {
+    const teacherFields = [
+      "employee_number",
+      "bio",
+      "specialization",
+      "qualifications",
+      "hire_date",
+    ] as const;
+    const teacherInsert: Record<string, string | null> = {
+      profile_id: newUserId,
+    };
+    for (const f of teacherFields) {
+      const v = String(formData.get(f) ?? "").trim();
+      if (v !== "") teacherInsert[f] = v;
+    }
+    const { error: tErr } = await svc.from("teachers").insert(teacherInsert);
+    if (tErr) {
+      await svc.auth.admin.deleteUser(newUserId);
+      throw new Error(tErr.message);
+    }
+  }
+
+  await logAudit(admin.id, "create_user", "profile", newUserId, {
+    role,
+    email,
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/students");
+  revalidatePath("/admin/teachers");
+  revalidatePath("/admin/admins");
+  revalidatePath("/admin/approvals");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Students
 // ─────────────────────────────────────────────────────────────────────────────
 export async function updateStudent(formData: FormData) {

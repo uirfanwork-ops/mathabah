@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -51,13 +52,14 @@ export default async function StudentsPage({
     <div className="space-y-6">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <h1 className="font-serif text-3xl font-semibold text-brand-parchment">
-            Students
-          </h1>
+          <h1 className="text-3xl font-semibold">Students</h1>
           <p className="text-muted-foreground">
             All approved student records.
           </p>
         </div>
+        <Button asChild>
+          <Link href="/admin/students/new">+ New student</Link>
+        </Button>
       </div>
 
       <form className="max-w-md">
