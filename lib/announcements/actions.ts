@@ -69,7 +69,13 @@ export async function createAnnouncement(formData: FormData) {
   else if (audience === "students") query = query.eq("role", "student");
 
   const { data: recipients } = await query;
-  const targets = recipients ?? [];
+  // PostgREST's generated types collapse into a union that includes
+  // GenericStringError; relax locally.
+  const targets = (recipients ?? []) as Array<{
+    id: string;
+    email: string | null;
+    full_name: string | null;
+  }>;
 
   // 3. Fan out in-app notifications (service role bypasses RLS so we can
   //    write notifications for teachers/students from an admin action).
@@ -91,7 +97,9 @@ export async function createAnnouncement(formData: FormData) {
 
     // 4. Send Resend broadcast — best effort.
     try {
-      const emails = targets.map((r) => r.email).filter((e): e is string => !!e);
+      const emails = targets
+        .map((r) => r.email)
+        .filter((e): e is string => !!e);
       if (emails.length > 0) {
         await sendAnnouncement({ to: emails, title, body });
       }

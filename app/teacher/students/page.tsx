@@ -54,7 +54,7 @@ export default async function TeacherStudentsPage() {
       : s?.profiles;
     const c = Array.isArray(r.course) ? r.course[0] : r.course;
     if (!s || !sProfile || !c) continue;
-    const existing = byStudent.get(s.id) ?? {
+    const existing: Aggregated = byStudent.get(s.id) ?? {
       id: s.id,
       name: sProfile.full_name,
       email: sProfile.email,
