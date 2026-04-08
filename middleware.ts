@@ -49,7 +49,17 @@ export async function middleware(request: NextRequest) {
   }
 
   // ─── Approved user landing on /auth/* → bounce to dashboard ────────────
-  if (pathname.startsWith("/auth/")) {
+  //
+  // Exception: /auth/complete-profile is the first-login gate where we
+  // collect phone + address. The portal layouts redirect here when those
+  // fields are missing, so approved users MUST be allowed through or we'd
+  // get an infinite redirect loop:
+  //   /admin → redirect(/auth/complete-profile) → middleware bounces to
+  //   /dashboard → redirect(/admin) → ...
+  if (
+    pathname.startsWith("/auth/") &&
+    pathname !== "/auth/complete-profile"
+  ) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);
