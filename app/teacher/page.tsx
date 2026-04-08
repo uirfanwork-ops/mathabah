@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { BookOpen, ClipboardList, FilePlus, Users } from "lucide-react";
 
+import { AnnouncementsFeed } from "@/components/shared/AnnouncementsFeed";
 import { StatCard } from "@/components/shared/StatCard";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -191,6 +192,8 @@ export default async function TeacherOverviewPage() {
           </CardContent>
         </Card>
       </div>
+
+      <AnnouncementsFeed />
     </div>
   );
 }

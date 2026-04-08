@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { FileText, Link as LinkIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import {
@@ -103,6 +104,7 @@ export default async function StudentCourseDetailPage({
     { data: assessments },
     { data: grades },
     { data: attendance },
+    { data: resources },
   ] = await Promise.all([
     supabase
       .from("assessments")
@@ -118,6 +120,11 @@ export default async function StudentCourseDetailPage({
       .select("id, session_date, status, notes")
       .eq("enrollment_id", enrollment.id)
       .order("session_date", { ascending: false }),
+    supabase
+      .from("course_resources")
+      .select("id, name, description, file_url, link_url, created_at")
+      .eq("course_id", params.id)
+      .order("created_at", { ascending: false }),
   ]);
 
   const gradeByAssessment = new Map<
@@ -176,6 +183,7 @@ export default async function StudentCourseDetailPage({
         <TabsList>
           <TabsTrigger value="grades">Grades</TabsTrigger>
           <TabsTrigger value="attendance">Attendance</TabsTrigger>
+          <TabsTrigger value="resources">Resources</TabsTrigger>
           <TabsTrigger value="info">Course info</TabsTrigger>
         </TabsList>
 
@@ -272,6 +280,50 @@ export default async function StudentCourseDetailPage({
                   )}
                 </TableBody>
               </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="resources">
+          <Card>
+            <CardHeader>
+              <CardTitle>Course resources ({(resources ?? []).length})</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {(resources ?? []).length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No resources have been shared for this course yet.
+                </p>
+              ) : (
+                (resources ?? []).map((r) => {
+                  const href = r.file_url || r.link_url || "#";
+                  const Icon = r.file_url ? FileText : LinkIcon;
+                  return (
+                    <a
+                      key={r.id}
+                      href={href}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-start gap-3 rounded-md border border-brand-gold/15 bg-brand-ink/30 p-3 hover:bg-brand-gold/5"
+                    >
+                      <Icon className="mt-1 h-4 w-4 shrink-0 text-brand-gold" />
+                      <div className="flex-1">
+                        <div className="font-medium text-brand-goldlight">
+                          {r.name}
+                        </div>
+                        {r.description && (
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {r.description}
+                          </p>
+                        )}
+                        <p className="mt-1 text-[10px] uppercase tracking-wider text-muted-foreground">
+                          {formatDate(r.created_at)}
+                        </p>
+                      </div>
+                    </a>
+                  );
+                })
+              )}
             </CardContent>
           </Card>
         </TabsContent>

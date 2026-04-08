@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { BrandMark } from "@/components/shared/BrandMark";
+import { NotificationBell } from "@/components/shared/NotificationBell";
 import { SignOutLink } from "@/components/shared/SignOutLink";
 import { StudentSidebar } from "@/components/shared/StudentSidebar";
 import { createClient } from "@/lib/supabase/server";
@@ -44,6 +45,7 @@ export default async function StudentLayout({
               <div className="text-brand-goldlight">{profile.full_name}</div>
               <div className="text-muted-foreground">{profile.email}</div>
             </div>
+            <NotificationBell href="/student/notifications" />
             <SignOutLink />
           </div>
         </div>

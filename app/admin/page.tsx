@@ -6,6 +6,7 @@ import {
   Wallet,
 } from "lucide-react";
 
+import { AnnouncementsFeed } from "@/components/shared/AnnouncementsFeed";
 import { StatCard } from "@/components/shared/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -146,31 +147,7 @@ export default async function AdminOverviewPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick links</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-2 text-sm">
-              <li className="text-muted-foreground">
-                Review pending accounts in{" "}
-                <span className="text-brand-goldlight">/admin/approvals</span>
-              </li>
-              <li className="text-muted-foreground">
-                Add a new student in{" "}
-                <span className="text-brand-goldlight">/admin/students</span>
-              </li>
-              <li className="text-muted-foreground">
-                Record a payment in{" "}
-                <span className="text-brand-goldlight">/admin/payments</span>
-              </li>
-              <li className="text-muted-foreground">
-                Create a course in{" "}
-                <span className="text-brand-goldlight">/admin/courses</span>
-              </li>
-            </ul>
-          </CardContent>
-        </Card>
+        <AnnouncementsFeed />
       </div>
     </div>
   );

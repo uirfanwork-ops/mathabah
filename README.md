@@ -5,10 +5,9 @@ Next.js 14 (App Router), Supabase, Tailwind CSS, shadcn/ui and Resend.
 Three roles: **admin**, **teacher**, **student**. All registrations are held
 as `pending` until an admin approves them.
 
-> **Status:** Phases 1–5 are implemented. Phase 6 (polish —
-> notifications, announcements, audit log, course resources) is
-> scaffolded as routes/placeholders and will be filled in in the
-> final PR.
+> **Status:** All six phases are implemented. The app now ships with
+> notifications, announcements, an admin audit log and course resources
+> on top of the Phase 1–5 foundation.
 
 ---
 
@@ -310,6 +309,50 @@ Three branded PDF documents rendered server-side with
   which broke the "Write report" link and would have broken the new
   PDF link
 
+## What ships in Phase 6
+
+The final polish phase closes out every cross-cutting concern in the spec:
+
+- ✅ **In-app notifications** — `notifications` table is wired up end to end.
+  `lib/notifications/actions.ts` exposes `markNotificationRead` and
+  `markAllNotificationsRead` (both relying on the `notifications_self` RLS
+  policy so the action runs under the user's own client)
+- ✅ **Notification bell** — server component in
+  `components/shared/NotificationBell.tsx` mounted in the admin, teacher
+  and student layouts. Shows an unread count badge (capped at `9+`) and
+  deep-links into the per-role `/notifications` inbox page
+- ✅ **Shared inbox** — `components/shared/NotificationsList.tsx` renders
+  the notifications list with "mark read" / "mark all read" buttons. Thin
+  `app/admin/notifications`, `app/teacher/notifications` and
+  `app/student/notifications` pages mount it inside each role layout
+- ✅ **Announcements compose** — `lib/announcements/actions.ts` implements
+  `createAnnouncement` + `deleteAnnouncement` with audience targeting
+  (`all` / `admins` / `teachers` / `students`). Publishing writes the
+  announcement row, fans out a `notifications` row per recipient via the
+  service-role client, sends the Resend broadcast through
+  `sendAnnouncement`, and records an `audit_logs` entry
+- ✅ **Announcements admin page** — `/admin/announcements` now has a real
+  compose form (title + audience + body) and a Published table with
+  inline delete
+- ✅ **Announcements feed** — `components/shared/AnnouncementsFeed.tsx`
+  widget mounted on the admin, teacher and student overview pages. RLS
+  (`announcements_audience_r`) automatically filters to what the viewer
+  is allowed to see
+- ✅ **Audit log viewer** — `/admin/audit-log` page with entity-type and
+  title filters over the latest 100 audit events. Shows the actor, action,
+  entity and metadata for every admin mutation. Added to the admin
+  sidebar as a new nav entry
+- ✅ **Course resources** — teachers can add / delete resources (file URL
+  or external link + description) via a new Resources tab on
+  `/teacher/my-courses/[id]`. Backed by `addCourseResource` and
+  `deleteCourseResource` in `lib/teacher/actions.ts`, both gated by
+  `assertTeacherOwnsCourse`. Students see the same list read-only via a
+  Resources tab on `/student/my-courses/[id]`, filtered by the
+  `resources_student_read` RLS policy
+- ✅ **Admin reports page** — the Phase 5 placeholder at `/admin/reports`
+  is replaced with a real teacher-reports list with type + title filters
+  and per-row PDF export links pointing at the Phase 5 endpoints
+
 ## Roadmap
 
 | Phase | Description                                                       | Status        |
@@ -319,4 +362,4 @@ Three branded PDF documents rendered server-side with
 | 3     | Teacher portal — courses, attendance, grades, reports             | ✅ shipped    |
 | 4     | Student portal — courses, grades, payments, profile               | ✅ shipped    |
 | 5     | PDF reports via `@react-pdf/renderer`                              | ✅ shipped    |
-| 6     | Notifications, announcements, audit log, course resources         | ⏳ scaffolded |
+| 6     | Notifications, announcements, audit log, course resources         | ✅ shipped    |

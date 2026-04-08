@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { AdminSidebar } from "@/components/shared/AdminSidebar";
 import { BrandMark } from "@/components/shared/BrandMark";
+import { NotificationBell } from "@/components/shared/NotificationBell";
 import { SignOutLink } from "@/components/shared/SignOutLink";
 import { createClient } from "@/lib/supabase/server";
 
@@ -49,6 +50,7 @@ export default async function AdminLayout({
               <div className="text-brand-goldlight">{profile.full_name}</div>
               <div className="text-muted-foreground">{profile.email}</div>
             </div>
+            <NotificationBell href="/admin/notifications" />
             <SignOutLink />
           </div>
         </div>

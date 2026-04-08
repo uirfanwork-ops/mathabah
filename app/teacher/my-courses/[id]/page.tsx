@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { AttendanceSheet } from "@/components/teacher/AttendanceSheet";
+import { CourseResources } from "@/components/teacher/CourseResources";
 import { GradeEntry } from "@/components/teacher/GradeEntry";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -79,8 +80,12 @@ export default async function TeacherCourseDetailPage({
     };
   });
 
-  // Assessments + grades for this course
-  const [{ data: assessments }, { data: grades }] = await Promise.all([
+  // Assessments + grades + resources for this course
+  const [
+    { data: assessments },
+    { data: grades },
+    { data: resources },
+  ] = await Promise.all([
     supabase
       .from("assessments")
       .select("id, name, description, max_score, weight, due_date")
@@ -92,6 +97,11 @@ export default async function TeacherCourseDetailPage({
         "id, score, feedback, enrollment_id, assessment_id, assessment:assessments!inner(course_id)",
       )
       .eq("assessment.course_id", course.id),
+    supabase
+      .from("course_resources")
+      .select("id, name, description, file_url, link_url, created_at")
+      .eq("course_id", course.id)
+      .order("created_at", { ascending: false }),
   ]);
 
   const existingGrades: Record<
@@ -165,6 +175,7 @@ export default async function TeacherCourseDetailPage({
           <TabsTrigger value="students">Students</TabsTrigger>
           <TabsTrigger value="attendance">Attendance</TabsTrigger>
           <TabsTrigger value="grades">Grades</TabsTrigger>
+          <TabsTrigger value="resources">Resources</TabsTrigger>
         </TabsList>
 
         <TabsContent value="students">
@@ -257,6 +268,20 @@ export default async function TeacherCourseDetailPage({
                 assessments={assessments ?? []}
                 enrollments={enrollments}
                 existingGrades={existingGrades}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="resources">
+          <Card>
+            <CardHeader>
+              <CardTitle>Course resources ({(resources ?? []).length})</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CourseResources
+                courseId={course.id}
+                resources={resources ?? []}
               />
             </CardContent>
           </Card>

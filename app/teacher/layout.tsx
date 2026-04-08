@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { BrandMark } from "@/components/shared/BrandMark";
+import { NotificationBell } from "@/components/shared/NotificationBell";
 import { SignOutLink } from "@/components/shared/SignOutLink";
 import { TeacherSidebar } from "@/components/shared/TeacherSidebar";
 import { createClient } from "@/lib/supabase/server";
@@ -44,6 +45,7 @@ export default async function TeacherLayout({
               <div className="text-brand-goldlight">{profile.full_name}</div>
               <div className="text-muted-foreground">{profile.email}</div>
             </div>
+            <NotificationBell href="/teacher/notifications" />
             <SignOutLink />
           </div>
         </div>

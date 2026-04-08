@@ -280,3 +280,54 @@ export async function submitTeacherReport(formData: FormData) {
   revalidatePath("/teacher/reports");
   if (courseId) revalidatePath(`/teacher/my-courses/${courseId}`);
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Course resources
+// ─────────────────────────────────────────────────────────────────────────────
+export async function addCourseResource(formData: FormData) {
+  const { supabase, teacher, profile } = await requireTeacher();
+  const courseId = String(formData.get("course_id") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
+  const description =
+    String(formData.get("description") ?? "").trim() || null;
+  const fileUrl = String(formData.get("file_url") ?? "").trim() || null;
+  const linkUrl = String(formData.get("link_url") ?? "").trim() || null;
+
+  if (!courseId || !name) throw new Error("Course id and name are required");
+  if (!fileUrl && !linkUrl) {
+    throw new Error("Provide at least a file URL or a link URL");
+  }
+
+  await assertTeacherOwnsCourse(courseId, teacher.id);
+
+  const { error } = await supabase.from("course_resources").insert({
+    course_id: courseId,
+    name,
+    description,
+    file_url: fileUrl,
+    link_url: linkUrl,
+    uploaded_by: profile.id,
+  });
+  if (error) throw error;
+
+  revalidatePath(`/teacher/my-courses/${courseId}`);
+  revalidatePath(`/student/my-courses/${courseId}`);
+}
+
+export async function deleteCourseResource(formData: FormData) {
+  const { supabase, teacher } = await requireTeacher();
+  const id = String(formData.get("id") ?? "");
+  const courseId = String(formData.get("course_id") ?? "");
+  if (!id || !courseId) throw new Error("Missing fields");
+
+  await assertTeacherOwnsCourse(courseId, teacher.id);
+
+  const { error } = await supabase
+    .from("course_resources")
+    .delete()
+    .eq("id", id);
+  if (error) throw error;
+
+  revalidatePath(`/teacher/my-courses/${courseId}`);
+  revalidatePath(`/student/my-courses/${courseId}`);
+}

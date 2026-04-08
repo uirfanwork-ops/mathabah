@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   BookOpen,
   ClipboardList,
+  FileClock,
   GraduationCap,
   Home,
   Layers,
@@ -26,6 +27,7 @@ const NAV = [
   { href: "/admin/payments", label: "Payments", icon: Wallet },
   { href: "/admin/reports", label: "Reports", icon: ClipboardList },
   { href: "/admin/announcements", label: "Announcements", icon: Megaphone },
+  { href: "/admin/audit-log", label: "Audit Log", icon: FileClock },
 ];
 
 export function AdminSidebar({ pendingCount }: { pendingCount?: number }) {
