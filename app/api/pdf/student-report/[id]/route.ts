@@ -49,8 +49,13 @@ export async function GET(
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
+  // PostgREST's generated types for complex !inner joins collapse into a
+  // union that includes GenericStringError, so we relax the type locally
+  // after the null check.
+  const s = studentRow as any;
+
   // Self-check for student role
-  if (me.role === "student" && studentRow.profile_id !== me.id) {
+  if (me.role === "student" && s.profile_id !== me.id) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
@@ -67,7 +72,7 @@ export async function GET(
     const { count } = await supabase
       .from("enrollments")
       .select("id, courses!inner(teacher_id)", { count: "exact", head: true })
-      .eq("student_id", studentRow.id)
+      .eq("student_id", s.id)
       .eq("courses.teacher_id", teacher.id);
     if (!count) {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
@@ -80,9 +85,9 @@ export async function GET(
     .select(
       "id, status, courses(id, name, code, teachers(profiles(full_name)))",
     )
-    .eq("student_id", studentRow.id);
+    .eq("student_id", s.id);
 
-  const enrollmentIds = (enrollments ?? []).map((e) => e.id);
+  const enrollmentIds = (enrollments ?? []).map((e: any) => e.id);
 
   // Pull all grades for these enrollments
   const { data: gradesRaw } = enrollmentIds.length
@@ -108,10 +113,8 @@ export async function GET(
   let cumScorePct = 0;
   let cumWeight = 0;
 
-  for (const e of enrollments ?? []) {
-    const c = Array.isArray((e as any).courses)
-      ? (e as any).courses[0]
-      : (e as any).courses;
+  for (const e of (enrollments ?? []) as any[]) {
+    const c = Array.isArray(e.courses) ? e.courses[0] : e.courses;
     if (!c) continue;
 
     const tWrap = Array.isArray(c.teachers) ? c.teachers[0] : c.teachers;
@@ -175,17 +178,15 @@ export async function GET(
     });
   }
 
-  const studentProfile = Array.isArray((studentRow as any).profiles)
-    ? (studentRow as any).profiles[0]
-    : (studentRow as any).profiles;
+  const studentProfile = Array.isArray(s.profiles) ? s.profiles[0] : s.profiles;
 
   const data: StudentReportData = {
     generatedAt: new Date().toISOString(),
     student: {
       fullName: studentProfile?.full_name ?? "Unknown student",
       email: studentProfile?.email ?? "",
-      studentNumber: studentRow.student_number ?? null,
-      enrollmentDate: studentRow.enrollment_date ?? null,
+      studentNumber: s.student_number ?? null,
+      enrollmentDate: s.enrollment_date ?? null,
     },
     courses,
     overall: {

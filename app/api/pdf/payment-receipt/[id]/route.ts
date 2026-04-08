@@ -47,9 +47,12 @@ export async function GET(
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
-  const studentRel = Array.isArray((payment as any).students)
-    ? (payment as any).students[0]
-    : (payment as any).students;
+  // PostgREST's generated types for complex !inner joins collapse into a
+  // union that includes GenericStringError, so we relax the type locally
+  // after the null check.
+  const p = payment as any;
+
+  const studentRel = Array.isArray(p.students) ? p.students[0] : p.students;
   const studentProfile = Array.isArray(studentRel?.profiles)
     ? studentRel?.profiles[0]
     : studentRel?.profiles;
@@ -62,13 +65,13 @@ export async function GET(
   // Look up the admin who recorded the payment. Use the service-role client
   // because the student can't read arbitrary profiles.
   let recordedByName: string | null = null;
-  if (payment.recorded_by) {
+  if (p.recorded_by) {
     try {
       const svc = createServiceRoleClient();
       const { data: actor } = await svc
         .from("profiles")
         .select("full_name")
-        .eq("id", payment.recorded_by)
+        .eq("id", p.recorded_by)
         .maybeSingle();
       recordedByName = actor?.full_name ?? null;
     } catch {
@@ -78,14 +81,14 @@ export async function GET(
 
   const data: PaymentReceiptData = {
     generatedAt: new Date().toISOString(),
-    receiptNumber: `MTB-${payment.id.slice(0, 8).toUpperCase()}`,
+    receiptNumber: `MTB-${String(p.id).slice(0, 8).toUpperCase()}`,
     payment: {
-      amount: Number(payment.amount),
-      currency: payment.currency,
-      paymentDate: payment.payment_date,
-      method: payment.method,
-      reference: payment.reference ?? null,
-      notes: payment.notes ?? null,
+      amount: Number(p.amount),
+      currency: p.currency,
+      paymentDate: p.payment_date,
+      method: p.method,
+      reference: p.reference ?? null,
+      notes: p.notes ?? null,
     },
     student: {
       fullName: studentProfile?.full_name ?? "Unknown student",

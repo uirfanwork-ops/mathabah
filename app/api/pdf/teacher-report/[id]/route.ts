@@ -53,33 +53,32 @@ export async function GET(
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
-  const teacherRel = Array.isArray((report as any).teachers)
-    ? (report as any).teachers[0]
-    : (report as any).teachers;
+  // PostgREST's generated types for complex !inner joins collapse into a
+  // union that includes GenericStringError, so we relax the type locally
+  // after the null check.
+  const r = report as any;
+
+  const teacherRel = Array.isArray(r.teachers) ? r.teachers[0] : r.teachers;
   const teacherProfile = Array.isArray(teacherRel?.profiles)
     ? teacherRel?.profiles[0]
     : teacherRel?.profiles;
 
-  const studentRel = Array.isArray((report as any).students)
-    ? (report as any).students[0]
-    : (report as any).students;
+  const studentRel = Array.isArray(r.students) ? r.students[0] : r.students;
   const studentProfile = Array.isArray(studentRel?.profiles)
     ? studentRel?.profiles[0]
     : studentRel?.profiles;
 
-  const courseRel = Array.isArray((report as any).courses)
-    ? (report as any).courses[0]
-    : (report as any).courses;
+  const courseRel = Array.isArray(r.courses) ? r.courses[0] : r.courses;
 
   const data: TeacherReportData = {
     generatedAt: new Date().toISOString(),
     report: {
-      id: report.id,
-      title: report.title,
-      content: report.content,
-      type: report.type,
-      isVisibleToStudent: report.is_visible_to_student,
-      createdAt: report.created_at,
+      id: r.id,
+      title: r.title,
+      content: r.content,
+      type: r.type,
+      isVisibleToStudent: r.is_visible_to_student,
+      createdAt: r.created_at,
     },
     teacher: {
       fullName: teacherProfile?.full_name ?? "Instructor",
@@ -97,6 +96,6 @@ export async function GET(
   const buf = await renderPdfToBuffer(
     createElement(TeacherReportPDF, { data }),
   );
-  const safeTitle = report.title.replace(/\s+/g, "-").toLowerCase().slice(0, 40);
+  const safeTitle = String(r.title).replace(/\s+/g, "-").toLowerCase().slice(0, 40);
   return pdfResponse(buf, `mathabah-report-${safeTitle}.pdf`);
 }
