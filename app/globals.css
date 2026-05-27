@@ -50,13 +50,13 @@
       radial-gradient(circle at 10% 0%, rgba(155, 28, 43, 0.08), transparent 40%),
       radial-gradient(circle at 90% 100%, rgba(201, 161, 74, 0.06), transparent 45%);
     background-attachment: fixed;
-    font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI",
-      Roboto, sans-serif;
+    font-family: var(--font-sans), "Helvetica Neue", Helvetica, Arial,
+      sans-serif;
   }
   h1, h2, h3, h4 {
     @apply tracking-tight;
-    font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI",
-      Roboto, sans-serif;
+    font-family: var(--font-sans), "Helvetica Neue", Helvetica, Arial,
+      sans-serif;
   }
 }
 
@@ -81,8 +81,8 @@
   .portal-main {
     background-color: #ffffff;
     color: #0a0a0a;
-    font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI",
-      Roboto, sans-serif;
+    font-family: var(--font-sans), "Helvetica Neue", Helvetica, Arial,
+      sans-serif;
   }
   .portal-main h1,
   .portal-main h2,
@@ -91,12 +91,12 @@
   .portal-main h5,
   .portal-main h6 {
     color: #0a0a0a;
-    font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI",
-      Roboto, sans-serif;
+    font-family: var(--font-sans), "Helvetica Neue", Helvetica, Arial,
+      sans-serif;
   }
   .portal-main .font-serif {
-    font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI",
-      Roboto, sans-serif;
+    font-family: var(--font-sans), "Helvetica Neue", Helvetica, Arial,
+      sans-serif;
   }
   /* Remap brand text colors to contrasting darks. */
   .portal-main [class*="text-brand-parchment"],
