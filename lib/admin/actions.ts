@@ -559,6 +559,132 @@ export async function deleteCourse(formData: FormData) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Assessments + grades (admin)
+// ─────────────────────────────────────────────────────────────────────────────
+export async function adminCreateAssessment(formData: FormData) {
+  const { profile: admin, supabase } = await requireAdmin();
+  const courseId = String(formData.get("course_id") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
+  if (!courseId || !name) throw new Error("Missing fields");
+
+  const { error } = await supabase.from("assessments").insert({
+    course_id: courseId,
+    name,
+    description: String(formData.get("description") ?? "").trim() || null,
+    max_score: Number(formData.get("max_score") ?? 100),
+    weight: Number(formData.get("weight") ?? 1),
+    due_date: String(formData.get("due_date") ?? "") || null,
+  });
+  if (error) throw error;
+
+  await logAudit(admin.id, "create_assessment", "assessment", null, {
+    course_id: courseId,
+    name,
+  });
+  revalidatePath(`/admin/courses/${courseId}`);
+}
+
+export async function adminRecordGrades(formData: FormData) {
+  const { profile: admin, supabase } = await requireAdmin();
+  const assessmentId = String(formData.get("assessment_id") ?? "");
+  const courseId = String(formData.get("course_id") ?? "");
+  if (!assessmentId || !courseId) throw new Error("Missing fields");
+
+  const { data: enrollments, error: enrollErr } = await supabase
+    .from("enrollments")
+    .select("id")
+    .eq("course_id", courseId);
+  if (enrollErr) throw enrollErr;
+
+  const rows: {
+    enrollment_id: string;
+    assessment_id: string;
+    score: number | null;
+    feedback: string | null;
+    recorded_by: string;
+  }[] = [];
+
+  for (const e of enrollments ?? []) {
+    const raw = formData.get(`score_${e.id}`);
+    const feedback =
+      String(formData.get(`feedback_${e.id}`) ?? "").trim() || null;
+    if (raw === null || raw === "") continue;
+    const score = Number(raw);
+    if (Number.isNaN(score)) continue;
+    rows.push({
+      enrollment_id: e.id,
+      assessment_id: assessmentId,
+      score,
+      feedback,
+      recorded_by: admin.id,
+    });
+  }
+
+  if (rows.length > 0) {
+    const { error } = await supabase
+      .from("grades")
+      .upsert(rows, { onConflict: "enrollment_id,assessment_id" });
+    if (error) throw error;
+  }
+
+  await logAudit(admin.id, "record_grades", "grade", null, {
+    course_id: courseId,
+    assessment_id: assessmentId,
+    count: rows.length,
+  });
+  revalidatePath(`/admin/courses/${courseId}`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Course resources (admin)
+// ─────────────────────────────────────────────────────────────────────────────
+export async function adminAddCourseResource(formData: FormData) {
+  const { profile: admin, supabase } = await requireAdmin();
+  const courseId = String(formData.get("course_id") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
+  const description =
+    String(formData.get("description") ?? "").trim() || null;
+  const fileUrl = String(formData.get("file_url") ?? "").trim() || null;
+  const linkUrl = String(formData.get("link_url") ?? "").trim() || null;
+
+  if (!courseId || !name) throw new Error("Course id and name are required");
+  if (!fileUrl && !linkUrl) {
+    throw new Error("Provide at least a file URL or a link URL");
+  }
+
+  const { error } = await supabase.from("course_resources").insert({
+    course_id: courseId,
+    name,
+    description,
+    file_url: fileUrl,
+    link_url: linkUrl,
+    uploaded_by: admin.id,
+  });
+  if (error) throw error;
+
+  await logAudit(admin.id, "add_course_resource", "course_resource", null, {
+    course_id: courseId,
+  });
+  revalidatePath(`/admin/courses/${courseId}`);
+}
+
+export async function adminDeleteCourseResource(formData: FormData) {
+  const { profile: admin, supabase } = await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const courseId = String(formData.get("course_id") ?? "");
+  if (!id || !courseId) throw new Error("Missing fields");
+
+  const { error } = await supabase
+    .from("course_resources")
+    .delete()
+    .eq("id", id);
+  if (error) throw error;
+
+  await logAudit(admin.id, "delete_course_resource", "course_resource", id);
+  revalidatePath(`/admin/courses/${courseId}`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Enrollments
 // ─────────────────────────────────────────────────────────────────────────────
 export async function createEnrollment(formData: FormData) {

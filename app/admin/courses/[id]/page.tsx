@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { AdminGradeEntry } from "@/components/admin/AdminGradeEntry";
+import { AdminResourceManager } from "@/components/admin/AdminResourceManager";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { deleteCourse } from "@/lib/admin/actions";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/utils";
@@ -43,13 +46,42 @@ export default async function CourseDetailPage({
 
   if (!course) notFound();
 
-  const { data: enrollments } = await supabase
-    .from("enrollments")
-    .select(
-      "id, status, enrolled_at, student:students(id, student_number, profiles(full_name, email))",
-    )
-    .eq("course_id", course.id)
-    .order("enrolled_at", { ascending: false });
+  const [
+    { data: enrollments },
+    { data: assessments },
+    { data: grades },
+    { data: resources },
+  ] = await Promise.all([
+    supabase
+      .from("enrollments")
+      .select(
+        "id, status, enrolled_at, student:students(id, student_number, profiles(full_name, email))",
+      )
+      .eq("course_id", course.id)
+      .order("enrolled_at", { ascending: false }),
+    supabase
+      .from("assessments")
+      .select("id, name, max_score, weight, due_date")
+      .eq("course_id", course.id)
+      .order("due_date", { ascending: true, nullsFirst: false }),
+    supabase
+      .from("grades")
+      .select("enrollment_id, assessment_id, score, feedback")
+      .in(
+        "enrollment_id",
+        (
+          await supabase
+            .from("enrollments")
+            .select("id")
+            .eq("course_id", course.id)
+        ).data?.map((e: any) => e.id) ?? [],
+      ),
+    supabase
+      .from("course_resources")
+      .select("id, name, description, file_url, link_url, created_at")
+      .eq("course_id", course.id)
+      .order("created_at", { ascending: false }),
+  ]);
 
   const program = Array.isArray((course as any).program)
     ? (course as any).program[0]
@@ -60,6 +92,28 @@ export default async function CourseDetailPage({
   const teacherProfile = Array.isArray(teacher?.profiles)
     ? teacher?.profiles[0]
     : teacher?.profiles;
+
+  const enrollmentsForGrades = (enrollments ?? []).map((e: any) => {
+    const s = Array.isArray(e.student) ? e.student[0] : e.student;
+    const sProfile = Array.isArray(s?.profiles) ? s?.profiles[0] : s?.profiles;
+    return {
+      id: e.id,
+      student: s
+        ? { id: s.id, full_name: sProfile?.full_name ?? "Unknown" }
+        : null,
+    };
+  });
+
+  const existingGrades: Record<
+    string,
+    { score: number | null; feedback: string | null }
+  > = {};
+  for (const g of grades ?? []) {
+    existingGrades[`${g.enrollment_id}:${g.assessment_id}`] = {
+      score: g.score,
+      feedback: g.feedback,
+    };
+  }
 
   return (
     <div className="space-y-6">
@@ -133,62 +187,107 @@ export default async function CourseDetailPage({
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Enrolled students ({enrollments?.length ?? 0})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Student</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Enrolled</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(enrollments ?? []).length === 0 ? (
-                  <TableEmpty colSpan={4}>No students enrolled.</TableEmpty>
-                ) : (
-                  (enrollments ?? []).map((e: any) => {
-                    const s = Array.isArray(e.student) ? e.student[0] : e.student;
-                    const sProfile = Array.isArray(s?.profiles)
-                      ? s?.profiles[0]
-                      : s?.profiles;
-                    return (
-                      <TableRow key={e.id}>
-                        <TableCell>
-                          <Link
-                            href={`/admin/students/${s?.id}`}
-                            className="text-brand-goldlight hover:underline"
-                          >
-                            {sProfile?.full_name ?? "—"}
-                          </Link>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {sProfile?.email ?? "—"}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {formatDate(e.enrolled_at)}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              e.status === "active" ? "success" : "secondary"
-                            }
-                          >
-                            {e.status}
-                          </Badge>
-                        </TableCell>
+        <div className="lg:col-span-2">
+          <Tabs defaultValue="students">
+            <TabsList>
+              <TabsTrigger value="students">
+                Students ({enrollments?.length ?? 0})
+              </TabsTrigger>
+              <TabsTrigger value="grades">
+                Grades ({assessments?.length ?? 0})
+              </TabsTrigger>
+              <TabsTrigger value="resources">
+                Resources ({resources?.length ?? 0})
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="students">
+              <Card>
+                <CardContent className="pt-6">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Student</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Enrolled</TableHead>
+                        <TableHead>Status</TableHead>
                       </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+                    </TableHeader>
+                    <TableBody>
+                      {(enrollments ?? []).length === 0 ? (
+                        <TableEmpty colSpan={4}>
+                          No students enrolled.
+                        </TableEmpty>
+                      ) : (
+                        (enrollments ?? []).map((e: any) => {
+                          const s = Array.isArray(e.student)
+                            ? e.student[0]
+                            : e.student;
+                          const sProfile = Array.isArray(s?.profiles)
+                            ? s?.profiles[0]
+                            : s?.profiles;
+                          return (
+                            <TableRow key={e.id}>
+                              <TableCell>
+                                <Link
+                                  href={`/admin/students/${s?.id}`}
+                                  className="text-brand-goldlight hover:underline"
+                                >
+                                  {sProfile?.full_name ?? "—"}
+                                </Link>
+                              </TableCell>
+                              <TableCell className="text-muted-foreground">
+                                {sProfile?.email ?? "—"}
+                              </TableCell>
+                              <TableCell className="text-muted-foreground">
+                                {formatDate(e.enrolled_at)}
+                              </TableCell>
+                              <TableCell>
+                                <Badge
+                                  variant={
+                                    e.status === "active"
+                                      ? "success"
+                                      : "secondary"
+                                  }
+                                >
+                                  {e.status}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                      )}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="grades">
+              <Card>
+                <CardContent className="pt-6">
+                  <AdminGradeEntry
+                    courseId={course.id}
+                    assessments={assessments ?? []}
+                    enrollments={enrollmentsForGrades}
+                    existingGrades={existingGrades}
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="resources">
+              <Card>
+                <CardContent className="pt-6">
+                  <AdminResourceManager
+                    courseId={course.id}
+                    resources={resources ?? []}
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
     </div>
   );
