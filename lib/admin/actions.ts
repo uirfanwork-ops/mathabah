@@ -114,6 +114,9 @@ export async function approveAccount(formData: FormData) {
 
   revalidatePath("/admin/approvals");
   revalidatePath("/admin");
+  revalidatePath("/admin/students");
+  revalidatePath("/admin/teachers");
+  revalidatePath("/admin/admins");
 }
 
 export async function rejectAccount(formData: FormData) {
