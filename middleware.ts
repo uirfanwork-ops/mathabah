@@ -58,7 +58,8 @@ export async function middleware(request: NextRequest) {
   //   /dashboard → redirect(/admin) → ...
   if (
     pathname.startsWith("/auth/") &&
-    pathname !== "/auth/complete-profile"
+    pathname !== "/auth/complete-profile" &&
+    pathname !== "/auth/callback"
   ) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
