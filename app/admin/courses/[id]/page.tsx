@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { AdminGradeEntry } from "@/components/admin/AdminGradeEntry";
 import { AdminResourceManager } from "@/components/admin/AdminResourceManager";
+import { CourseEnrollForm } from "@/components/admin/CourseEnrollForm";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -51,6 +52,7 @@ export default async function CourseDetailPage({
     { data: assessments },
     { data: grades },
     { data: resources },
+    { data: allStudents },
   ] = await Promise.all([
     supabase
       .from("enrollments")
@@ -81,6 +83,10 @@ export default async function CourseDetailPage({
       .select("id, name, description, file_url, link_url, created_at")
       .eq("course_id", course.id)
       .order("created_at", { ascending: false }),
+    supabase
+      .from("students")
+      .select("id, profiles!inner(full_name, email, display_id)")
+      .order("created_at", { ascending: false }),
   ]);
 
   const program = Array.isArray((course as any).program)
@@ -92,6 +98,24 @@ export default async function CourseDetailPage({
   const teacherProfile = Array.isArray(teacher?.profiles)
     ? teacher?.profiles[0]
     : teacher?.profiles;
+
+  const enrolledStudentIds = new Set(
+    (enrollments ?? []).map((e: any) => {
+      const s = Array.isArray(e.student) ? e.student[0] : e.student;
+      return s?.id;
+    }).filter(Boolean),
+  );
+  const availableStudents = (allStudents ?? [])
+    .filter((s: any) => !enrolledStudentIds.has(s.id))
+    .map((s: any) => {
+      const p = Array.isArray(s.profiles) ? s.profiles[0] : s.profiles;
+      return {
+        id: s.id,
+        full_name: p?.full_name ?? "Unknown",
+        email: p?.email ?? "",
+        display_id: p?.display_id ?? null,
+      };
+    });
 
   const enrollmentsForGrades = (enrollments ?? []).map((e: any) => {
     const s = Array.isArray(e.student) ? e.student[0] : e.student;
@@ -203,7 +227,11 @@ export default async function CourseDetailPage({
 
             <TabsContent value="students">
               <Card>
-                <CardContent className="pt-6">
+                <CardContent className="space-y-6 pt-6">
+                  <CourseEnrollForm
+                    courseId={course.id}
+                    availableStudents={availableStudents}
+                  />
                   <Table>
                     <TableHeader>
                       <TableRow>
