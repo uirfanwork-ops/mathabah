@@ -89,7 +89,7 @@ export default async function StudentProfilePage({
     const { data: g } = await supabase
       .from("grades")
       .select(
-        "id, score, feedback, created_at, assessment:assessments(id, name, max_score, course_id), enrollment_id",
+        "id, score, feedback, created_at, assessment:assessments(id, name, max_score, course:courses(name)), enrollment_id",
       )
       .in("enrollment_id", enrollmentIds)
       .order("created_at", { ascending: false });
@@ -206,6 +206,7 @@ export default async function StudentProfilePage({
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Course</TableHead>
                     <TableHead>Assessment</TableHead>
                     <TableHead>Score</TableHead>
                     <TableHead>Recorded</TableHead>
@@ -213,14 +214,20 @@ export default async function StudentProfilePage({
                 </TableHeader>
                 <TableBody>
                   {grades.length === 0 ? (
-                    <TableEmpty colSpan={3}>No grades recorded yet.</TableEmpty>
+                    <TableEmpty colSpan={4}>No grades recorded yet.</TableEmpty>
                   ) : (
                     grades.map((g: any) => {
                       const a = Array.isArray(g.assessment)
                         ? g.assessment[0]
                         : g.assessment;
+                      const course = Array.isArray(a?.course)
+                        ? a?.course[0]
+                        : a?.course;
                       return (
                         <TableRow key={g.id}>
+                          <TableCell className="text-muted-foreground">
+                            {course?.name ?? "—"}
+                          </TableCell>
                           <TableCell className="font-medium text-brand-goldlight">
                             {a?.name ?? "—"}
                           </TableCell>
