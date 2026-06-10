@@ -212,7 +212,7 @@ export default async function StudentCourseDetailPage({
                       const g = gradeByAssessment.get(a.id);
                       return (
                         <TableRow key={a.id}>
-                          <TableCell className="font-medium text-brand-goldlight">
+                          <TableCell className="font-medium text-brand-ink">
                             {a.name}
                           </TableCell>
                           <TableCell className="text-muted-foreground">
@@ -220,7 +220,7 @@ export default async function StudentCourseDetailPage({
                           </TableCell>
                           <TableCell>
                             {g?.score !== null && g?.score !== undefined ? (
-                              <span className="font-mono text-brand-goldlight">
+                              <span className="font-mono text-brand-ink">
                                 {g.score} / {a.max_score}
                               </span>
                             ) : (

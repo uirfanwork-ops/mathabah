@@ -191,7 +191,7 @@ export function AdminGradeEntry({
                   const existing = existingGrades[key];
                   return (
                     <TableRow key={e.id}>
-                      <TableCell className="font-medium">
+                      <TableCell className="font-medium text-brand-ink">
                         {e.student?.full_name ?? "—"}
                       </TableCell>
                       <TableCell>

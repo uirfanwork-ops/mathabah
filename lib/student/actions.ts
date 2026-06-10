@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // helpers
@@ -83,4 +83,24 @@ export async function updateStudentProfile(formData: FormData) {
 
   revalidatePath("/student/profile");
   revalidatePath("/student");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Self-enrollment
+// ─────────────────────────────────────────────────────────────────────────────
+export async function requestEnrollment(formData: FormData) {
+  const { student } = await requireStudent();
+
+  const course_id = String(formData.get("course_id") ?? "").trim();
+  if (!course_id) throw new Error("Missing course");
+
+  const svc = createServiceRoleClient();
+  const { error } = await svc
+    .from("enrollments")
+    .insert({ student_id: student.id, course_id });
+
+  if (error && !`${error.message}`.includes("duplicate")) throw error;
+
+  revalidatePath("/student/grades");
+  revalidatePath("/student/my-courses");
 }
