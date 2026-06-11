@@ -95,6 +95,14 @@ export async function requestEnrollment(formData: FormData) {
   if (!course_id) throw new Error("Missing course");
 
   const svc = createServiceRoleClient();
+
+  const { data: course } = await svc
+    .from("courses")
+    .select("is_active")
+    .eq("id", course_id)
+    .single();
+  if (!course?.is_active) throw new Error("This course is not open for enrollment");
+
   const { error } = await svc
     .from("enrollments")
     .insert({ student_id: student.id, course_id });
