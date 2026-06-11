@@ -225,13 +225,13 @@ export default async function StudentProfilePage({
                         : a?.course;
                       return (
                         <TableRow key={g.id}>
-                          <TableCell className="text-muted-foreground">
+                          <TableCell className="text-brand-ink">
                             {course?.name ?? "—"}
                           </TableCell>
-                          <TableCell className="font-medium text-brand-goldlight">
+                          <TableCell className="font-medium text-brand-ink">
                             {a?.name ?? "—"}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="font-mono text-brand-ink">
                             {g.score} / {a?.max_score ?? "—"}
                           </TableCell>
                           <TableCell className="text-muted-foreground">
@@ -269,7 +269,7 @@ export default async function StudentProfilePage({
                     (payments ?? []).map((p: any) => (
                       <TableRow key={p.id}>
                         <TableCell>{formatDate(p.payment_date)}</TableCell>
-                        <TableCell className="font-medium text-brand-goldlight">
+                        <TableCell className="font-medium text-brand-ink">
                           {formatCurrency(Number(p.amount), p.currency)}
                         </TableCell>
                         <TableCell className="capitalize text-muted-foreground">

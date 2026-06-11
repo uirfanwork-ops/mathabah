@@ -121,7 +121,7 @@ export default async function AnnouncementsPage() {
                       {formatDate(a.published_at)}
                     </TableCell>
                     <TableCell>
-                      <div className="text-brand-goldlight">{a.title}</div>
+                      <div className="font-medium text-brand-ink">{a.title}</div>
                       <div className="line-clamp-2 text-xs text-muted-foreground">
                         {a.body}
                       </div>

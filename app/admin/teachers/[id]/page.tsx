@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { TeacherForm } from "@/components/admin/TeacherForm";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -19,6 +20,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { deleteTeacher } from "@/lib/admin/actions";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, getInitials } from "@/lib/utils";
 
@@ -68,30 +70,38 @@ export default async function TeacherProfilePage({
         ← Back to teachers
       </Link>
 
-      <div className="flex items-start gap-4">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full border border-brand-gold/40 bg-brand-gold/10 text-2xl text-brand-gold">
-          {getInitials(profile.full_name)}
-        </div>
-        <div>
-          <h1 className="text-3xl font-semibold text-brand-parchment">
-            {profile.full_name}
-          </h1>
-          <p className="text-sm text-muted-foreground">{profile.email}</p>
-          <div className="mt-1 flex items-center gap-2">
-            {profile.display_id && (
-              <Badge variant="outline" className="font-mono">
-                {profile.display_id}
-              </Badge>
-            )}
-            <Badge variant="success">{profile.status}</Badge>
-            {teacher.employee_number && (
-              <Badge variant="outline">#{teacher.employee_number}</Badge>
-            )}
-            {teacher.specialization && (
-              <Badge variant="default">{teacher.specialization}</Badge>
-            )}
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start gap-4">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full border border-brand-gold/40 bg-brand-gold/10 text-2xl text-brand-gold">
+            {getInitials(profile.full_name)}
+          </div>
+          <div>
+            <h1 className="text-3xl font-semibold text-brand-parchment">
+              {profile.full_name}
+            </h1>
+            <p className="text-sm text-muted-foreground">{profile.email}</p>
+            <div className="mt-1 flex items-center gap-2">
+              {profile.display_id && (
+                <Badge variant="outline" className="font-mono">
+                  {profile.display_id}
+                </Badge>
+              )}
+              <Badge variant="success">{profile.status}</Badge>
+              {teacher.employee_number && (
+                <Badge variant="outline">#{teacher.employee_number}</Badge>
+              )}
+              {teacher.specialization && (
+                <Badge variant="default">{teacher.specialization}</Badge>
+              )}
+            </div>
           </div>
         </div>
+        <form action={deleteTeacher}>
+          <input type="hidden" name="teacher_id" value={teacher.id} />
+          <Button type="submit" variant="destructive" size="sm">
+            Delete teacher
+          </Button>
+        </form>
       </div>
 
       <Tabs defaultValue="profile">
@@ -204,10 +214,10 @@ export default async function TeacherProfilePage({
                           <TableCell className="text-muted-foreground">
                             {formatDate(r.created_at)}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="text-brand-ink">
                             {studentProfile?.full_name ?? "—"}
                           </TableCell>
-                          <TableCell className="text-brand-goldlight">
+                          <TableCell className="font-medium text-brand-ink">
                             {r.title}
                           </TableCell>
                           <TableCell>

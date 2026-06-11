@@ -113,10 +113,10 @@ export default async function CoursesPage() {
                           {c.name}
                         </Link>
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
+                      <TableCell className="text-brand-ink">
                         {program?.name ?? "—"}
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
+                      <TableCell className="text-brand-ink">
                         {teacherProfile?.full_name ?? "—"}
                       </TableCell>
                       <TableCell className="text-muted-foreground">

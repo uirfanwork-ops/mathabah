@@ -93,13 +93,13 @@ export default async function TeacherReportsPage() {
                       <TableCell className="text-muted-foreground">
                         {formatDate(r.created_at)}
                       </TableCell>
-                      <TableCell className="font-medium text-brand-goldlight">
+                      <TableCell className="font-medium text-brand-ink">
                         {sProfile?.full_name ?? "—"}
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
+                      <TableCell className="text-brand-ink">
                         {c?.code ?? c?.name ?? "—"}
                       </TableCell>
-                      <TableCell>{r.title}</TableCell>
+                      <TableCell className="text-brand-ink">{r.title}</TableCell>
                       <TableCell>
                         <Badge
                           variant={

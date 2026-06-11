@@ -90,7 +90,7 @@ export function EnrollmentManager({
           ) : (
             enrollments.map((e) => (
               <TableRow key={e.id}>
-                <TableCell className="font-medium text-brand-goldlight">
+                <TableCell className="font-medium text-brand-ink">
                   {e.course?.code ? `${e.course.code} — ` : ""}
                   {e.course?.name ?? "Unknown course"}
                 </TableCell>

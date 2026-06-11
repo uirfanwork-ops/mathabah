@@ -97,7 +97,7 @@ export default async function ProgramsPage() {
                     <TableCell className="font-mono text-xs text-brand-gold">
                       {p.code ?? "—"}
                     </TableCell>
-                    <TableCell className="font-medium text-brand-goldlight">
+                    <TableCell className="font-medium text-brand-ink">
                       {p.name}
                     </TableCell>
                     <TableCell className="text-muted-foreground">

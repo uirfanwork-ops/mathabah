@@ -126,7 +126,7 @@ export default async function StudentPaymentsPage() {
                     <TableCell className="font-mono text-sm">
                       {formatDate(p.payment_date)}
                     </TableCell>
-                    <TableCell className="font-medium text-brand-goldlight">
+                    <TableCell className="font-medium text-brand-ink">
                       {formatCurrency(Number(p.amount), p.currency)}
                     </TableCell>
                     <TableCell>

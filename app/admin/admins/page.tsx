@@ -85,7 +85,7 @@ export default async function AdminsPage({
                 <TableCell className="font-mono text-xs text-brand-gold">
                   {row.display_id ?? "—"}
                 </TableCell>
-                <TableCell className="font-medium">{row.full_name}</TableCell>
+                <TableCell className="font-medium text-brand-ink">{row.full_name}</TableCell>
                 <TableCell className="text-muted-foreground">
                   {row.email}
                 </TableCell>

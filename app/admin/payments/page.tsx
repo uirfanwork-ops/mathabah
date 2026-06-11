@@ -104,7 +104,7 @@ export default async function PaymentsPage() {
                           {profile?.full_name ?? "—"}
                         </Link>
                       </TableCell>
-                      <TableCell className="font-medium text-brand-goldlight">
+                      <TableCell className="font-medium text-brand-ink">
                         {formatCurrency(Number(p.amount), p.currency)}
                       </TableCell>
                       <TableCell className="capitalize text-muted-foreground">

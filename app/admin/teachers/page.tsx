@@ -103,7 +103,7 @@ export default async function TeachersPage({
                     {row.email}
                   </TableCell>
                   <TableCell>{teacher?.employee_number ?? "—"}</TableCell>
-                  <TableCell className="text-muted-foreground">
+                  <TableCell className="text-brand-ink">
                     {teacher?.specialization ?? "—"}
                   </TableCell>
                   <TableCell>

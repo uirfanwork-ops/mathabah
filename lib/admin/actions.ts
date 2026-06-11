@@ -416,6 +416,30 @@ export async function updateTeacher(formData: FormData) {
   revalidatePath("/admin/teachers");
 }
 
+export async function deleteTeacher(formData: FormData) {
+  const { profile: admin } = await requireAdmin();
+  const teacherId = String(formData.get("teacher_id") ?? "");
+  if (!teacherId) throw new Error("Missing teacher id");
+
+  const svc = createServiceRoleClient();
+
+  // Look up profile_id then cascade-delete the profile as well
+  const { data: teacher } = await svc
+    .from("teachers")
+    .select("profile_id")
+    .eq("id", teacherId)
+    .single();
+
+  await svc.from("teachers").delete().eq("id", teacherId);
+  if (teacher?.profile_id) {
+    await svc.from("profiles").delete().eq("id", teacher.profile_id);
+    // Note: auth.users is left in place — admin can purge from Supabase dashboard.
+  }
+
+  await logAudit(admin.id, "delete_teacher", "teacher", teacherId);
+  revalidatePath("/admin/teachers");
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Programs
 // ─────────────────────────────────────────────────────────────────────────────

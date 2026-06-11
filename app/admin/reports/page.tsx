@@ -147,7 +147,7 @@ export default async function AdminReportsPage({
                         {formatDate(r.created_at)}
                       </TableCell>
                       <TableCell className="max-w-xs">
-                        <div className="font-medium text-brand-goldlight">
+                        <div className="font-medium text-brand-ink">
                           {r.title}
                         </div>
                         <div className="line-clamp-1 text-xs text-muted-foreground">
@@ -178,7 +178,7 @@ export default async function AdminReportsPage({
                           <span className="text-muted-foreground">—</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
+                      <TableCell className="text-brand-ink">
                         {course?.name
                           ? `${course.code ? `${course.code} — ` : ""}${course.name}`
                           : "—"}

@@ -149,7 +149,7 @@ export default async function AuditLogPage({
                       <TableCell>
                         {actor ? (
                           <div>
-                            <div className="text-brand-goldlight">
+                            <div className="text-brand-ink">
                               {actor.full_name}
                             </div>
                             <div className="text-xs text-muted-foreground">
@@ -166,7 +166,7 @@ export default async function AuditLogPage({
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <div className="font-medium text-brand-goldlight">
+                        <div className="font-medium text-brand-ink">
                           {r.entity_type}
                         </div>
                         {r.entity_id ? (

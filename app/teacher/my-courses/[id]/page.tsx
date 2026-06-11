@@ -200,7 +200,7 @@ export default async function TeacherCourseDetailPage({
                   ) : (
                     enrollments.map((e) => (
                       <TableRow key={e.id}>
-                        <TableCell className="font-medium text-brand-goldlight">
+                        <TableCell className="font-medium text-brand-ink">
                           {e.student?.full_name ?? "—"}
                         </TableCell>
                         <TableCell>

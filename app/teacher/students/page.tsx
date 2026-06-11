@@ -100,7 +100,7 @@ export default async function TeacherStudentsPage() {
           ) : (
             students.map((s) => (
               <TableRow key={s.id}>
-                <TableCell className="font-medium text-brand-goldlight">
+                <TableCell className="font-medium text-brand-ink">
                   {s.name}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
