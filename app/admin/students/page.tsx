@@ -108,7 +108,7 @@ export default async function StudentsPage({
                   <TableCell className="text-muted-foreground">
                     {row.email}
                   </TableCell>
-                  <TableCell>{student?.student_number ?? "—"}</TableCell>
+                  <TableCell className="text-brand-ink">{student?.student_number ?? "—"}</TableCell>
                   <TableCell className="text-muted-foreground">
                     {[row.city, row.country].filter(Boolean).join(", ") || "—"}
                   </TableCell>
