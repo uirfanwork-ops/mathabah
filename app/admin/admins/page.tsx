@@ -27,19 +27,22 @@ export default async function AdminsPage({
   searchParams: SearchParams;
 }) {
   const supabase = createClient();
-  const q = (searchParams.q ?? "").trim();
+  const q = (searchParams.q ?? "").trim().toLowerCase();
 
-  let query = supabase
+  const { data: allRows } = await supabase
     .from("profiles")
     .select("id, full_name, email, phone, status, created_at, display_id")
     .eq("role", "admin")
     .order("created_at", { ascending: false });
 
-  if (q) {
-    query = query.or(`full_name.ilike.%${q}%,email.ilike.%${q}%`);
-  }
-
-  const { data: rows } = await query;
+  const rows = (allRows ?? []).filter((row) => {
+    if (!q) return true;
+    const searchable = [row.full_name, row.email, row.phone, row.display_id]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    return searchable.includes(q);
+  });
 
   return (
     <div className="space-y-6">
@@ -59,7 +62,7 @@ export default async function AdminsPage({
         <Input
           name="q"
           defaultValue={q}
-          placeholder="Search by name or email…"
+          placeholder="Search by name, email, phone, ID…"
         />
       </form>
 

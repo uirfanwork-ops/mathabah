@@ -17,24 +17,15 @@ import { formatDate } from "@/lib/utils";
 
 export const metadata = { title: "Students" };
 
-interface SearchParams {
-  q?: string;
-}
-
 export default async function StudentsPage({
   searchParams,
 }: {
-  searchParams: SearchParams;
+  searchParams: { q?: string };
 }) {
   const supabase = createClient();
-  const q = (searchParams.q ?? "").trim();
+  const q = (searchParams.q ?? "").trim().toLowerCase();
 
-  // Pull student-role profiles joined to their students row. Contact fields
-  // (city, country) live on profiles themselves after migration 0003; only
-  // student_number and enrollment_date need to come from the nested join.
-  // We use a regular (left) join rather than `students!inner` so a profile
-  // missing its students row still shows up (see fix 7d7cb8e).
-  let query = supabase
+  const { data: allRows } = await supabase
     .from("profiles")
     .select(
       "id, full_name, email, phone, city, country, status, created_at, display_id, students(id, student_number, enrollment_date)",
@@ -42,11 +33,25 @@ export default async function StudentsPage({
     .eq("role", "student")
     .order("created_at", { ascending: false });
 
-  if (q) {
-    query = query.or(`full_name.ilike.%${q}%,email.ilike.%${q}%`);
-  }
-
-  const { data: rows } = await query;
+  const rows = (allRows ?? []).filter((row: any) => {
+    if (!q) return true;
+    const student = Array.isArray(row.students)
+      ? row.students[0]
+      : row.students;
+    const searchable = [
+      row.full_name,
+      row.email,
+      row.phone,
+      row.display_id,
+      row.city,
+      row.country,
+      student?.student_number,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    return searchable.includes(q);
+  });
 
   return (
     <div className="space-y-6">
@@ -65,8 +70,8 @@ export default async function StudentsPage({
       <form className="max-w-md">
         <Input
           name="q"
-          defaultValue={q}
-          placeholder="Search by name or email…"
+          defaultValue={searchParams.q ?? ""}
+          placeholder="Search by name, email, student #, location…"
         />
       </form>
 
@@ -83,12 +88,12 @@ export default async function StudentsPage({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {(rows ?? []).length === 0 ? (
+          {rows.length === 0 ? (
             <TableEmpty colSpan={7}>
               {q ? "No students match your search." : "No students yet."}
             </TableEmpty>
           ) : (
-            (rows ?? []).map((row: any) => {
+            rows.map((row: any) => {
               const student = Array.isArray(row.students)
                 ? row.students[0]
                 : row.students;
@@ -108,7 +113,9 @@ export default async function StudentsPage({
                   <TableCell className="text-muted-foreground">
                     {row.email}
                   </TableCell>
-                  <TableCell className="text-brand-ink">{student?.student_number ?? "—"}</TableCell>
+                  <TableCell className="text-brand-ink">
+                    {student?.student_number ?? "—"}
+                  </TableCell>
                   <TableCell className="text-muted-foreground">
                     {[row.city, row.country].filter(Boolean).join(", ") || "—"}
                   </TableCell>

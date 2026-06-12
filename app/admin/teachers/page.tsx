@@ -23,12 +23,9 @@ export default async function TeachersPage({
   searchParams: { q?: string };
 }) {
   const supabase = createClient();
-  const q = (searchParams.q ?? "").trim();
+  const q = (searchParams.q ?? "").trim().toLowerCase();
 
-  // Left join to `teachers` so a teacher-role profile missing its teachers
-  // row still shows up in the list (see /admin/students/page.tsx for the
-  // same reasoning).
-  let query = supabase
+  const { data: allRows } = await supabase
     .from("profiles")
     .select(
       "id, full_name, email, phone, status, created_at, display_id, teachers(id, employee_number, specialization, hire_date)",
@@ -36,11 +33,24 @@ export default async function TeachersPage({
     .eq("role", "teacher")
     .order("created_at", { ascending: false });
 
-  if (q) {
-    query = query.or(`full_name.ilike.%${q}%,email.ilike.%${q}%`);
-  }
-
-  const { data: rows } = await query;
+  const rows = (allRows ?? []).filter((row: any) => {
+    if (!q) return true;
+    const teacher = Array.isArray(row.teachers)
+      ? row.teachers[0]
+      : row.teachers;
+    const searchable = [
+      row.full_name,
+      row.email,
+      row.phone,
+      row.display_id,
+      teacher?.employee_number,
+      teacher?.specialization,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    return searchable.includes(q);
+  });
 
   return (
     <div className="space-y-6">
@@ -59,8 +69,8 @@ export default async function TeachersPage({
       <form className="max-w-md">
         <Input
           name="q"
-          defaultValue={q}
-          placeholder="Search by name or email…"
+          defaultValue={searchParams.q ?? ""}
+          placeholder="Search by name, email, employee #, specialization…"
         />
       </form>
 
@@ -77,12 +87,12 @@ export default async function TeachersPage({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {(rows ?? []).length === 0 ? (
+          {rows.length === 0 ? (
             <TableEmpty colSpan={7}>
               {q ? "No teachers match your search." : "No teachers yet."}
             </TableEmpty>
           ) : (
-            (rows ?? []).map((row: any) => {
+            rows.map((row: any) => {
               const teacher = Array.isArray(row.teachers)
                 ? row.teachers[0]
                 : row.teachers;
@@ -102,7 +112,9 @@ export default async function TeachersPage({
                   <TableCell className="text-muted-foreground">
                     {row.email}
                   </TableCell>
-                  <TableCell className="text-brand-ink">{teacher?.employee_number ?? "—"}</TableCell>
+                  <TableCell className="text-brand-ink">
+                    {teacher?.employee_number ?? "—"}
+                  </TableCell>
                   <TableCell className="text-brand-ink">
                     {teacher?.specialization ?? "—"}
                   </TableCell>

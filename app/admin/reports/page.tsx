@@ -49,10 +49,31 @@ export default async function AdminReportsPage({
     .limit(200);
 
   if (typeFilter) query = query.eq("type", typeFilter);
-  if (q) query = query.ilike("title", `%${q}%`);
 
   const { data: reports } = await query;
-  const rows = reports ?? [];
+
+  const rows = (reports ?? []).filter((r: any) => {
+    if (!q) return true;
+    const ql = q.toLowerCase();
+    const teacher = Array.isArray(r.teacher) ? r.teacher[0] : r.teacher;
+    const teacherProfile = Array.isArray(teacher?.profiles) ? teacher?.profiles[0] : teacher?.profiles;
+    const student = Array.isArray(r.student) ? r.student[0] : r.student;
+    const studentProfile = Array.isArray(student?.profiles) ? student?.profiles[0] : student?.profiles;
+    const course = Array.isArray(r.course) ? r.course[0] : r.course;
+    const searchable = [
+      r.title,
+      r.content,
+      r.type,
+      teacherProfile?.full_name,
+      studentProfile?.full_name,
+      course?.name,
+      course?.code,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    return searchable.includes(ql);
+  });
 
   return (
     <div className="space-y-6">
@@ -82,11 +103,11 @@ export default async function AdminReportsPage({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="q">Title contains</Label>
+              <Label htmlFor="q">Search</Label>
               <Input
                 id="q"
                 name="q"
-                placeholder="e.g. mid-course summary"
+                placeholder="Search title, student, teacher, course…"
                 defaultValue={q}
               />
             </div>
