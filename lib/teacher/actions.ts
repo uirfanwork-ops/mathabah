@@ -6,7 +6,12 @@ import {
   createClient,
   createServiceRoleClient,
 } from "@/lib/supabase/server";
-import { sendTeacherReportToAdmin } from "@/lib/resend";
+import {
+  sendGradesUpdated,
+  sendNewAssessment,
+  sendNewResource,
+  sendTeacherReportToAdmin,
+} from "@/lib/resend";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // helpers
@@ -111,6 +116,7 @@ export async function createAssessment(formData: FormData) {
   const { supabase, teacher } = await requireTeacher();
   const courseId = String(formData.get("course_id") ?? "");
   const name = String(formData.get("name") ?? "").trim();
+  const dueDate = String(formData.get("due_date") ?? "") || null;
   if (!courseId || !name) throw new Error("Missing fields");
 
   await assertTeacherOwnsCourse(courseId, teacher.id);
@@ -121,9 +127,33 @@ export async function createAssessment(formData: FormData) {
     description: String(formData.get("description") ?? "").trim() || null,
     max_score: Number(formData.get("max_score") ?? 100),
     weight: Number(formData.get("weight") ?? 1),
-    due_date: String(formData.get("due_date") ?? "") || null,
+    due_date: dueDate,
   });
   if (error) throw error;
+
+  try {
+    const svc = createServiceRoleClient();
+    const [{ data: course }, { data: enrollments }] = await Promise.all([
+      svc.from("courses").select("name").eq("id", courseId).single(),
+      svc
+        .from("enrollments")
+        .select("students(profiles(email))")
+        .eq("course_id", courseId)
+        .eq("status", "active"),
+    ]);
+    const emails = (enrollments ?? [])
+      .map((e: any) => {
+        const s = Array.isArray(e.students) ? e.students[0] : e.students;
+        const p = Array.isArray(s?.profiles) ? s?.profiles[0] : s?.profiles;
+        return p?.email;
+      })
+      .filter(Boolean) as string[];
+    if (emails.length > 0 && course) {
+      await sendNewAssessment({ to: emails, courseName: course.name, assessmentName: name, dueDate });
+    }
+  } catch (e) {
+    console.warn("[createAssessment] email failed", e);
+  }
 
   revalidatePath(`/teacher/my-courses/${courseId}`);
 }
@@ -171,6 +201,31 @@ export async function recordGrades(formData: FormData) {
       .from("grades")
       .upsert(rows, { onConflict: "enrollment_id,assessment_id" });
     if (error) throw error;
+
+    try {
+      const svc = createServiceRoleClient();
+      const gradedIds = rows.map((r) => r.enrollment_id);
+      const [{ data: assessment }, { data: course }, { data: enrollments }] =
+        await Promise.all([
+          svc.from("assessments").select("name").eq("id", assessmentId).single(),
+          svc.from("courses").select("name").eq("id", courseId).single(),
+          svc.from("enrollments").select("id, students(profiles(email, full_name))").in("id", gradedIds),
+        ]);
+      for (const e of enrollments ?? []) {
+        const s = Array.isArray((e as any).students) ? (e as any).students[0] : (e as any).students;
+        const p = Array.isArray(s?.profiles) ? s?.profiles[0] : s?.profiles;
+        if (p?.email && assessment && course) {
+          sendGradesUpdated({
+            to: p.email,
+            fullName: p.full_name,
+            courseName: course.name,
+            assessmentName: assessment.name,
+          }).catch(() => {});
+        }
+      }
+    } catch (e) {
+      console.warn("[recordGrades] email failed", e);
+    }
   }
 
   revalidatePath(`/teacher/my-courses/${courseId}`);
@@ -309,6 +364,30 @@ export async function addCourseResource(formData: FormData) {
     uploaded_by: profile.id,
   });
   if (error) throw error;
+
+  try {
+    const svc = createServiceRoleClient();
+    const [{ data: course }, { data: enrollments }] = await Promise.all([
+      svc.from("courses").select("name").eq("id", courseId).single(),
+      svc
+        .from("enrollments")
+        .select("students(profiles(email))")
+        .eq("course_id", courseId)
+        .eq("status", "active"),
+    ]);
+    const emails = (enrollments ?? [])
+      .map((e: any) => {
+        const s = Array.isArray(e.students) ? e.students[0] : e.students;
+        const p = Array.isArray(s?.profiles) ? s?.profiles[0] : s?.profiles;
+        return p?.email;
+      })
+      .filter(Boolean) as string[];
+    if (emails.length > 0 && course) {
+      await sendNewResource({ to: emails, courseName: course.name, resourceName: name });
+    }
+  } catch (e) {
+    console.warn("[addCourseResource] email failed", e);
+  }
 
   revalidatePath(`/teacher/my-courses/${courseId}`);
   revalidatePath(`/student/my-courses/${courseId}`);

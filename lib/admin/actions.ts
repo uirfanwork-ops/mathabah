@@ -7,6 +7,10 @@ import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
 import {
   sendApprovalRejection,
   sendApprovalWelcome,
+  sendEnrollmentNotification,
+  sendGradesUpdated,
+  sendNewAssessment,
+  sendNewResource,
   sendPaymentConfirmation,
 } from "@/lib/resend";
 
@@ -592,6 +596,7 @@ export async function adminCreateAssessment(formData: FormData) {
   const { profile: admin, supabase } = await requireAdmin();
   const courseId = String(formData.get("course_id") ?? "");
   const name = String(formData.get("name") ?? "").trim();
+  const dueDate = String(formData.get("due_date") ?? "") || null;
   if (!courseId || !name) throw new Error("Missing fields");
 
   const { error } = await supabase.from("assessments").insert({
@@ -600,7 +605,7 @@ export async function adminCreateAssessment(formData: FormData) {
     description: String(formData.get("description") ?? "").trim() || null,
     max_score: Number(formData.get("max_score") ?? 100),
     weight: Number(formData.get("weight") ?? 1),
-    due_date: String(formData.get("due_date") ?? "") || null,
+    due_date: dueDate,
   });
   if (error) throw error;
 
@@ -608,6 +613,36 @@ export async function adminCreateAssessment(formData: FormData) {
     course_id: courseId,
     name,
   });
+
+  try {
+    const svc = createServiceRoleClient();
+    const [{ data: course }, { data: enrollments }] = await Promise.all([
+      svc.from("courses").select("name").eq("id", courseId).single(),
+      svc
+        .from("enrollments")
+        .select("students(profiles(email))")
+        .eq("course_id", courseId)
+        .eq("status", "active"),
+    ]);
+    const emails = (enrollments ?? [])
+      .map((e: any) => {
+        const s = Array.isArray(e.students) ? e.students[0] : e.students;
+        const p = Array.isArray(s?.profiles) ? s?.profiles[0] : s?.profiles;
+        return p?.email;
+      })
+      .filter(Boolean) as string[];
+    if (emails.length > 0 && course) {
+      await sendNewAssessment({
+        to: emails,
+        courseName: course.name,
+        assessmentName: name,
+        dueDate,
+      });
+    }
+  } catch (e) {
+    console.warn("[adminCreateAssessment] email failed", e);
+  }
+
   revalidatePath(`/admin/courses/${courseId}`);
 }
 
@@ -659,6 +694,37 @@ export async function adminRecordGrades(formData: FormData) {
     assessment_id: assessmentId,
     count: rows.length,
   });
+
+  if (rows.length > 0) {
+    try {
+      const svc = createServiceRoleClient();
+      const gradedEnrollmentIds = rows.map((r) => r.enrollment_id);
+      const [{ data: assessment }, { data: course }, { data: enrollments }] =
+        await Promise.all([
+          svc.from("assessments").select("name").eq("id", assessmentId).single(),
+          svc.from("courses").select("name").eq("id", courseId).single(),
+          svc
+            .from("enrollments")
+            .select("id, students(profiles(email, full_name))")
+            .in("id", gradedEnrollmentIds),
+        ]);
+      for (const e of enrollments ?? []) {
+        const s = Array.isArray((e as any).students) ? (e as any).students[0] : (e as any).students;
+        const p = Array.isArray(s?.profiles) ? s?.profiles[0] : s?.profiles;
+        if (p?.email && assessment && course) {
+          sendGradesUpdated({
+            to: p.email,
+            fullName: p.full_name,
+            courseName: course.name,
+            assessmentName: assessment.name,
+          }).catch(() => {});
+        }
+      }
+    } catch (e) {
+      console.warn("[adminRecordGrades] email failed", e);
+    }
+  }
+
   revalidatePath(`/admin/courses/${courseId}`);
 }
 
@@ -692,6 +758,31 @@ export async function adminAddCourseResource(formData: FormData) {
   await logAudit(admin.id, "add_course_resource", "course_resource", null, {
     course_id: courseId,
   });
+
+  try {
+    const svc = createServiceRoleClient();
+    const [{ data: course }, { data: enrollments }] = await Promise.all([
+      svc.from("courses").select("name").eq("id", courseId).single(),
+      svc
+        .from("enrollments")
+        .select("students(profiles(email))")
+        .eq("course_id", courseId)
+        .eq("status", "active"),
+    ]);
+    const emails = (enrollments ?? [])
+      .map((e: any) => {
+        const s = Array.isArray(e.students) ? e.students[0] : e.students;
+        const p = Array.isArray(s?.profiles) ? s?.profiles[0] : s?.profiles;
+        return p?.email;
+      })
+      .filter(Boolean) as string[];
+    if (emails.length > 0 && course) {
+      await sendNewResource({ to: emails, courseName: course.name, resourceName: name });
+    }
+  } catch (e) {
+    console.warn("[adminAddCourseResource] email failed", e);
+  }
+
   revalidatePath(`/admin/courses/${courseId}`);
 }
 
@@ -729,6 +820,26 @@ export async function createEnrollment(formData: FormData) {
     student_id,
     course_id,
   });
+
+  try {
+    const svc = createServiceRoleClient();
+    const [{ data: student }, { data: course }] = await Promise.all([
+      svc.from("students").select("profiles(email, full_name)").eq("id", student_id).single(),
+      svc.from("courses").select("name, code").eq("id", course_id).single(),
+    ]);
+    const profile = Array.isArray(student?.profiles) ? student?.profiles[0] : student?.profiles;
+    if (profile?.email && course) {
+      await sendEnrollmentNotification({
+        to: profile.email,
+        fullName: profile.full_name,
+        courseName: course.name,
+        courseCode: course.code,
+      });
+    }
+  } catch (e) {
+    console.warn("[createEnrollment] email failed", e);
+  }
+
   revalidatePath(`/admin/students/${student_id}`);
   revalidatePath(`/admin/courses/${course_id}`);
 }

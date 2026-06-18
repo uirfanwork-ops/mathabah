@@ -210,6 +210,135 @@ export async function sendAnnouncement(params: {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// 7. Student enrolled in course → email to student
+// ─────────────────────────────────────────────────────────────────────────────
+export async function sendEnrollmentNotification(params: {
+  to: string;
+  fullName: string;
+  courseName: string;
+  courseCode?: string | null;
+}) {
+  const client = getClient();
+  if (!client) return { skipped: true };
+
+  const label = params.courseCode
+    ? `${escapeHtml(params.courseCode)} — ${escapeHtml(params.courseName)}`
+    : escapeHtml(params.courseName);
+
+  return client.emails.send({
+    from: fromAddress,
+    to: params.to,
+    subject: `You've been enrolled in ${params.courseName}`,
+    html: wrap(
+      "New course enrollment",
+      `<p>Dear ${escapeHtml(params.fullName)},</p>
+       <p>You have been enrolled in <strong>${label}</strong> at Mathabah Institute.</p>
+       <p>You can now access course materials, view assessments, and track your grades.</p>
+       <p>
+         <a href="${appUrl}/student/my-courses" style="display:inline-block;background:#7a0a13;color:#f5ecd6;padding:10px 18px;border-radius:6px;text-decoration:none;border:1px solid #c9a14a;">
+           View my courses
+         </a>
+       </p>`,
+    ),
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 8. Grades updated → email to affected students
+// ─────────────────────────────────────────────────────────────────────────────
+export async function sendGradesUpdated(params: {
+  to: string;
+  fullName: string;
+  courseName: string;
+  assessmentName: string;
+}) {
+  const client = getClient();
+  if (!client) return { skipped: true };
+
+  return client.emails.send({
+    from: fromAddress,
+    to: params.to,
+    subject: `Grades posted for ${params.assessmentName}`,
+    html: wrap(
+      "Grades posted",
+      `<p>Dear ${escapeHtml(params.fullName)},</p>
+       <p>Your grade for <strong>${escapeHtml(params.assessmentName)}</strong> in
+       <strong>${escapeHtml(params.courseName)}</strong> has been posted.</p>
+       <p>Sign in to view your score and any feedback from your instructor.</p>
+       <p>
+         <a href="${appUrl}/student/grades" style="display:inline-block;background:#7a0a13;color:#f5ecd6;padding:10px 18px;border-radius:6px;text-decoration:none;border:1px solid #c9a14a;">
+           View grades
+         </a>
+       </p>`,
+    ),
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 9. New assessment published → email to enrolled students
+// ─────────────────────────────────────────────────────────────────────────────
+export async function sendNewAssessment(params: {
+  to: string[];
+  courseName: string;
+  assessmentName: string;
+  dueDate?: string | null;
+}) {
+  const client = getClient();
+  if (!client) return { skipped: true };
+  if (params.to.length === 0) return { skipped: true };
+
+  const dueLine = params.dueDate
+    ? `<p><strong>Due date:</strong> ${escapeHtml(params.dueDate)}</p>`
+    : "";
+
+  return client.emails.send({
+    from: fromAddress,
+    to: params.to,
+    subject: `New assessment: ${params.assessmentName} — ${params.courseName}`,
+    html: wrap(
+      "New assessment published",
+      `<p>A new assessment has been posted for <strong>${escapeHtml(params.courseName)}</strong>.</p>
+       <p><strong>Assessment:</strong> ${escapeHtml(params.assessmentName)}</p>
+       ${dueLine}
+       <p>
+         <a href="${appUrl}/student/my-courses" style="display:inline-block;background:#7a0a13;color:#f5ecd6;padding:10px 18px;border-radius:6px;text-decoration:none;border:1px solid #c9a14a;">
+           View course
+         </a>
+       </p>`,
+    ),
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 10. New course resource → email to enrolled students
+// ─────────────────────────────────────────────────────────────────────────────
+export async function sendNewResource(params: {
+  to: string[];
+  courseName: string;
+  resourceName: string;
+}) {
+  const client = getClient();
+  if (!client) return { skipped: true };
+  if (params.to.length === 0) return { skipped: true };
+
+  return client.emails.send({
+    from: fromAddress,
+    to: params.to,
+    subject: `New resource shared: ${params.resourceName} — ${params.courseName}`,
+    html: wrap(
+      "New course material",
+      `<p>A new resource has been shared for <strong>${escapeHtml(params.courseName)}</strong>.</p>
+       <p><strong>Resource:</strong> ${escapeHtml(params.resourceName)}</p>
+       <p>
+         <a href="${appUrl}/student/my-courses" style="display:inline-block;background:#7a0a13;color:#f5ecd6;padding:10px 18px;border-radius:6px;text-decoration:none;border:1px solid #c9a14a;">
+           View course
+         </a>
+       </p>`,
+    ),
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // helpers
 // ─────────────────────────────────────────────────────────────────────────────
 function escapeHtml(s: string) {
