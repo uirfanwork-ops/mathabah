@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
+import { sendEnrollmentNotification } from "@/lib/resend";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // helpers
@@ -89,7 +90,7 @@ export async function updateStudentProfile(formData: FormData) {
 // Self-enrollment
 // ─────────────────────────────────────────────────────────────────────────────
 export async function requestEnrollment(formData: FormData) {
-  const { student } = await requireStudent();
+  const { profile, student } = await requireStudent();
 
   const course_id = String(formData.get("course_id") ?? "").trim();
   if (!course_id) throw new Error("Missing course");
@@ -108,6 +109,40 @@ export async function requestEnrollment(formData: FormData) {
     .insert({ student_id: student.id, course_id });
 
   if (error && !`${error.message}`.includes("duplicate")) throw error;
+
+  try {
+    const { data: courseRow } = await svc
+      .from("courses")
+      .select("name, code")
+      .eq("id", course_id)
+      .single();
+    const { data: prof } = await svc
+      .from("profiles")
+      .select("email, full_name")
+      .eq("id", profile.id)
+      .single();
+
+    if (prof?.email && courseRow) {
+      sendEnrollmentNotification({
+        to: prof.email,
+        fullName: prof.full_name,
+        courseName: courseRow.name,
+        courseCode: courseRow.code,
+      }).catch(() => {});
+    }
+
+    if (prof && courseRow) {
+      await svc.from("notifications").insert({
+        user_id: profile.id,
+        type: "enrollment",
+        title: `Enrolled in ${courseRow.name}`,
+        body: `You have enrolled in ${courseRow.code ? `${courseRow.code} — ` : ""}${courseRow.name}.`,
+        link: "/student/my-courses",
+      });
+    }
+  } catch (e) {
+    console.warn("[requestEnrollment] notification failed", e);
+  }
 
   revalidatePath("/student/grades");
   revalidatePath("/student/my-courses");

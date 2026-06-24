@@ -151,8 +151,31 @@ export async function createAssessment(formData: FormData) {
     if (emails.length > 0 && course) {
       await sendNewAssessment({ to: emails, courseName: course.name, assessmentName: name, dueDate });
     }
+    if (course) {
+      const { data: enrolledStudents } = await svc
+        .from("enrollments")
+        .select("students(profile_id)")
+        .eq("course_id", courseId)
+        .eq("status", "active");
+      const notifs = (enrolledStudents ?? [])
+        .map((e: any) => {
+          const s = Array.isArray(e.students) ? e.students[0] : e.students;
+          return s?.profile_id;
+        })
+        .filter(Boolean)
+        .map((uid: string) => ({
+          user_id: uid,
+          type: "assessment",
+          title: `New assessment: ${name}`,
+          body: `A new assessment "${name}" has been posted for ${course.name}.`,
+          link: "/student/my-courses",
+        }));
+      if (notifs.length > 0) {
+        await svc.from("notifications").insert(notifs);
+      }
+    }
   } catch (e) {
-    console.warn("[createAssessment] email failed", e);
+    console.warn("[createAssessment] email/notification failed", e);
   }
 
   revalidatePath(`/teacher/my-courses/${courseId}`);
@@ -209,8 +232,9 @@ export async function recordGrades(formData: FormData) {
         await Promise.all([
           svc.from("assessments").select("name").eq("id", assessmentId).single(),
           svc.from("courses").select("name").eq("id", courseId).single(),
-          svc.from("enrollments").select("id, students(profiles(email, full_name))").in("id", gradedIds),
+          svc.from("enrollments").select("id, students(profile_id, profiles(email, full_name))").in("id", gradedIds),
         ]);
+      const notifs: { user_id: string; type: string; title: string; body: string; link: string }[] = [];
       for (const e of enrollments ?? []) {
         const s = Array.isArray((e as any).students) ? (e as any).students[0] : (e as any).students;
         const p = Array.isArray(s?.profiles) ? s?.profiles[0] : s?.profiles;
@@ -222,9 +246,21 @@ export async function recordGrades(formData: FormData) {
             assessmentName: assessment.name,
           }).catch(() => {});
         }
+        if (s?.profile_id && assessment && course) {
+          notifs.push({
+            user_id: s.profile_id,
+            type: "grade",
+            title: `Grade posted: ${assessment.name}`,
+            body: `Your grade for "${assessment.name}" in ${course.name} has been posted.`,
+            link: "/student/grades",
+          });
+        }
+      }
+      if (notifs.length > 0) {
+        await svc.from("notifications").insert(notifs);
       }
     } catch (e) {
-      console.warn("[recordGrades] email failed", e);
+      console.warn("[recordGrades] email/notification failed", e);
     }
   }
 
@@ -385,8 +421,31 @@ export async function addCourseResource(formData: FormData) {
     if (emails.length > 0 && course) {
       await sendNewResource({ to: emails, courseName: course.name, resourceName: name });
     }
+    if (course) {
+      const { data: enrolledStudents } = await svc
+        .from("enrollments")
+        .select("students(profile_id)")
+        .eq("course_id", courseId)
+        .eq("status", "active");
+      const notifs = (enrolledStudents ?? [])
+        .map((e: any) => {
+          const s = Array.isArray(e.students) ? e.students[0] : e.students;
+          return s?.profile_id;
+        })
+        .filter(Boolean)
+        .map((uid: string) => ({
+          user_id: uid,
+          type: "resource",
+          title: `New resource: ${name}`,
+          body: `A new resource "${name}" has been shared for ${course.name}.`,
+          link: "/student/my-courses",
+        }));
+      if (notifs.length > 0) {
+        await svc.from("notifications").insert(notifs);
+      }
+    }
   } catch (e) {
-    console.warn("[addCourseResource] email failed", e);
+    console.warn("[addCourseResource] email/notification failed", e);
   }
 
   revalidatePath(`/teacher/my-courses/${courseId}`);

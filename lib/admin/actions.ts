@@ -624,13 +624,13 @@ export async function adminCreateAssessment(formData: FormData) {
         .eq("course_id", courseId)
         .eq("status", "active"),
     ]);
-    const emails = (enrollments ?? [])
-      .map((e: any) => {
-        const s = Array.isArray(e.students) ? e.students[0] : e.students;
-        const p = Array.isArray(s?.profiles) ? s?.profiles[0] : s?.profiles;
-        return p?.email;
-      })
-      .filter(Boolean) as string[];
+    const studentProfiles: { email: string; profile_id: string }[] = [];
+    for (const e of enrollments ?? []) {
+      const s = Array.isArray((e as any).students) ? (e as any).students[0] : (e as any).students;
+      const p = Array.isArray(s?.profiles) ? s?.profiles[0] : s?.profiles;
+      if (p?.email) studentProfiles.push({ email: p.email, profile_id: s?.profile_id ?? p?.id });
+    }
+    const emails = studentProfiles.map((sp) => sp.email);
     if (emails.length > 0 && course) {
       await sendNewAssessment({
         to: emails,
@@ -639,8 +639,31 @@ export async function adminCreateAssessment(formData: FormData) {
         dueDate,
       });
     }
+    if (course) {
+      const { data: enrolledStudents } = await svc
+        .from("enrollments")
+        .select("students(profile_id)")
+        .eq("course_id", courseId)
+        .eq("status", "active");
+      const notifs = (enrolledStudents ?? [])
+        .map((e: any) => {
+          const s = Array.isArray(e.students) ? e.students[0] : e.students;
+          return s?.profile_id;
+        })
+        .filter(Boolean)
+        .map((uid: string) => ({
+          user_id: uid,
+          type: "assessment",
+          title: `New assessment: ${name}`,
+          body: `A new assessment "${name}" has been posted for ${course.name}.`,
+          link: "/student/my-courses",
+        }));
+      if (notifs.length > 0) {
+        await svc.from("notifications").insert(notifs);
+      }
+    }
   } catch (e) {
-    console.warn("[adminCreateAssessment] email failed", e);
+    console.warn("[adminCreateAssessment] email/notification failed", e);
   }
 
   revalidatePath(`/admin/courses/${courseId}`);
@@ -705,9 +728,10 @@ export async function adminRecordGrades(formData: FormData) {
           svc.from("courses").select("name").eq("id", courseId).single(),
           svc
             .from("enrollments")
-            .select("id, students(profiles(email, full_name))")
+            .select("id, students(profile_id, profiles(email, full_name))")
             .in("id", gradedEnrollmentIds),
         ]);
+      const notifs: { user_id: string; type: string; title: string; body: string; link: string }[] = [];
       for (const e of enrollments ?? []) {
         const s = Array.isArray((e as any).students) ? (e as any).students[0] : (e as any).students;
         const p = Array.isArray(s?.profiles) ? s?.profiles[0] : s?.profiles;
@@ -719,9 +743,21 @@ export async function adminRecordGrades(formData: FormData) {
             assessmentName: assessment.name,
           }).catch(() => {});
         }
+        if (s?.profile_id && assessment && course) {
+          notifs.push({
+            user_id: s.profile_id,
+            type: "grade",
+            title: `Grade posted: ${assessment.name}`,
+            body: `Your grade for "${assessment.name}" in ${course.name} has been posted.`,
+            link: "/student/grades",
+          });
+        }
+      }
+      if (notifs.length > 0) {
+        await svc.from("notifications").insert(notifs);
       }
     } catch (e) {
-      console.warn("[adminRecordGrades] email failed", e);
+      console.warn("[adminRecordGrades] email/notification failed", e);
     }
   }
 
@@ -779,8 +815,31 @@ export async function adminAddCourseResource(formData: FormData) {
     if (emails.length > 0 && course) {
       await sendNewResource({ to: emails, courseName: course.name, resourceName: name });
     }
+    if (course) {
+      const { data: enrolledStudents } = await svc
+        .from("enrollments")
+        .select("students(profile_id)")
+        .eq("course_id", courseId)
+        .eq("status", "active");
+      const notifs = (enrolledStudents ?? [])
+        .map((e: any) => {
+          const s = Array.isArray(e.students) ? e.students[0] : e.students;
+          return s?.profile_id;
+        })
+        .filter(Boolean)
+        .map((uid: string) => ({
+          user_id: uid,
+          type: "resource",
+          title: `New resource: ${name}`,
+          body: `A new resource "${name}" has been shared for ${course.name}.`,
+          link: "/student/my-courses",
+        }));
+      if (notifs.length > 0) {
+        await svc.from("notifications").insert(notifs);
+      }
+    }
   } catch (e) {
-    console.warn("[adminAddCourseResource] email failed", e);
+    console.warn("[adminAddCourseResource] email/notification failed", e);
   }
 
   revalidatePath(`/admin/courses/${courseId}`);
@@ -836,8 +895,22 @@ export async function createEnrollment(formData: FormData) {
         courseCode: course.code,
       });
     }
+    const { data: studentRow } = await svc
+      .from("students")
+      .select("profile_id")
+      .eq("id", student_id)
+      .single();
+    if (studentRow?.profile_id && course) {
+      await svc.from("notifications").insert({
+        user_id: studentRow.profile_id,
+        type: "enrollment",
+        title: `Enrolled in ${course.name}`,
+        body: `You have been enrolled in ${course.code ? `${course.code} — ` : ""}${course.name}.`,
+        link: "/student/my-courses",
+      });
+    }
   } catch (e) {
-    console.warn("[createEnrollment] email failed", e);
+    console.warn("[createEnrollment] email/notification failed", e);
   }
 
   revalidatePath(`/admin/students/${student_id}`);
