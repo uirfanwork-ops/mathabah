@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/table";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/utils";
+import { groupByCategory } from "@/lib/assessment-categories";
 
 export const metadata = { title: "Course · Student" };
 
@@ -108,7 +109,7 @@ export default async function StudentCourseDetailPage({
   ] = await Promise.all([
     supabase
       .from("assessments")
-      .select("id, name, max_score, weight, due_date")
+      .select("id, name, category, max_score, weight, due_date")
       .eq("course_id", params.id)
       .order("due_date", { ascending: true, nullsFirst: false }),
     supabase
@@ -137,6 +138,24 @@ export default async function StudentCourseDetailPage({
       feedback: g.feedback,
     });
   }
+
+  // Weighted final percentage across every graded assessment.
+  let finalPercentage: number | null = null;
+  {
+    let weightSum = 0;
+    let scoreSum = 0;
+    for (const a of assessments ?? []) {
+      const g = gradeByAssessment.get(a.id);
+      if (g && g.score !== null && g.score !== undefined) {
+        const pct = Number(g.score) / Number(a.max_score);
+        scoreSum += pct * Number(a.weight);
+        weightSum += Number(a.weight);
+      }
+    }
+    if (weightSum > 0) finalPercentage = (scoreSum / weightSum) * 100;
+  }
+
+  const assessmentGroups = groupByCategory(assessments ?? []);
 
   const teachers = Array.isArray((course as any).teachers)
     ? (course as any).teachers[0]
@@ -189,55 +208,75 @@ export default async function StudentCourseDetailPage({
 
         <TabsContent value="grades">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between gap-4">
               <CardTitle>Assessments &amp; grades</CardTitle>
+              {finalPercentage !== null && (
+                <div className="text-right">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                    Final grade
+                  </div>
+                  <div className="text-2xl font-semibold text-brand-goldlight">
+                    {finalPercentage.toFixed(1)}%
+                  </div>
+                </div>
+              )}
             </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Assessment</TableHead>
-                    <TableHead>Due</TableHead>
-                    <TableHead>Score</TableHead>
-                    <TableHead>Feedback</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(assessments ?? []).length === 0 ? (
-                    <TableEmpty colSpan={4}>
-                      No assessments published yet.
-                    </TableEmpty>
-                  ) : (
-                    (assessments ?? []).map((a) => {
-                      const g = gradeByAssessment.get(a.id);
-                      return (
-                        <TableRow key={a.id}>
-                          <TableCell className="font-medium text-brand-ink">
-                            {a.name}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {a.due_date ? formatDate(a.due_date) : "—"}
-                          </TableCell>
-                          <TableCell>
-                            {g?.score !== null && g?.score !== undefined ? (
-                              <span className="font-mono text-brand-ink">
-                                {g.score} / {a.max_score}
-                              </span>
-                            ) : (
-                              <span className="text-muted-foreground">
-                                Not graded
-                              </span>
-                            )}
-                          </TableCell>
-                          <TableCell className="max-w-md text-muted-foreground">
-                            {g?.feedback ?? "—"}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  )}
-                </TableBody>
-              </Table>
+            <CardContent className="space-y-6">
+              {assessmentGroups.length === 0 ? (
+                <p className="py-6 text-center text-sm text-muted-foreground">
+                  No assessments published yet.
+                </p>
+              ) : (
+                assessmentGroups.map((group) => (
+                  <div key={group.value}>
+                    <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-brand-gold">
+                      {group.label}
+                    </div>
+                    <div className="overflow-hidden rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Assessment</TableHead>
+                            <TableHead>Due</TableHead>
+                            <TableHead>Score</TableHead>
+                            <TableHead>Feedback</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {group.items.map((a: any) => {
+                            const g = gradeByAssessment.get(a.id);
+                            return (
+                              <TableRow key={a.id}>
+                                <TableCell className="font-medium text-brand-ink">
+                                  {a.name}
+                                </TableCell>
+                                <TableCell className="text-muted-foreground">
+                                  {a.due_date ? formatDate(a.due_date) : "—"}
+                                </TableCell>
+                                <TableCell>
+                                  {g?.score !== null &&
+                                  g?.score !== undefined ? (
+                                    <span className="font-mono text-brand-ink">
+                                      {g.score} / {a.max_score}
+                                    </span>
+                                  ) : (
+                                    <span className="text-muted-foreground">
+                                      Not graded
+                                    </span>
+                                  )}
+                                </TableCell>
+                                <TableCell className="max-w-md text-muted-foreground">
+                                  {g?.feedback ?? "—"}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                ))
+              )}
             </CardContent>
           </Card>
         </TabsContent>

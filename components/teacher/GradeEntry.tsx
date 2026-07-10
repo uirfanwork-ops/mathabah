@@ -18,10 +18,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  ASSESSMENT_CATEGORIES,
+  DEFAULT_ASSESSMENT_CATEGORY,
+  groupByCategory,
+} from "@/lib/assessment-categories";
 
 interface Assessment {
   id: string;
   name: string;
+  category?: string | null;
   max_score: number;
 }
 
@@ -57,6 +63,11 @@ export function GradeEntry({
     [assessments, selectedAssessmentId],
   );
 
+  const assessmentGroups = useMemo(
+    () => groupByCategory(assessments),
+    [assessments],
+  );
+
   return (
     <div className="space-y-6">
       {/* Create new assessment */}
@@ -86,6 +97,20 @@ export function GradeEntry({
           <div className="space-y-1.5 md:col-span-2">
             <Label htmlFor="name">Name</Label>
             <Input id="name" name="name" required placeholder="Quiz 1" />
+          </div>
+          <div className="space-y-1.5 md:col-span-2">
+            <Label htmlFor="category">Category</Label>
+            <Select
+              id="category"
+              name="category"
+              defaultValue={DEFAULT_ASSESSMENT_CATEGORY}
+            >
+              {ASSESSMENT_CATEGORIES.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.label}
+                </option>
+              ))}
+            </Select>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="max_score">Max score</Label>
@@ -154,10 +179,14 @@ export function GradeEntry({
                 value={selectedAssessmentId}
                 onChange={(e) => setSelectedAssessmentId(e.target.value)}
               >
-                {assessments.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.name} (out of {a.max_score})
-                  </option>
+                {assessmentGroups.map((group) => (
+                  <optgroup key={group.value} label={group.label}>
+                    {group.items.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.name} (out of {a.max_score})
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
               </Select>
             </div>

@@ -602,6 +602,7 @@ export async function adminCreateAssessment(formData: FormData) {
   const { error } = await supabase.from("assessments").insert({
     course_id: courseId,
     name,
+    category: String(formData.get("category") ?? "assignment").trim() || "assignment",
     description: String(formData.get("description") ?? "").trim() || null,
     max_score: Number(formData.get("max_score") ?? 100),
     weight: Number(formData.get("weight") ?? 1),

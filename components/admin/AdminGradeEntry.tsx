@@ -21,10 +21,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  ASSESSMENT_CATEGORIES,
+  DEFAULT_ASSESSMENT_CATEGORY,
+  groupByCategory,
+} from "@/lib/assessment-categories";
 
 interface Assessment {
   id: string;
   name: string;
+  category?: string | null;
   max_score: number;
 }
 
@@ -59,6 +65,11 @@ export function AdminGradeEntry({
     [assessments, selectedAssessmentId],
   );
 
+  const assessmentGroups = useMemo(
+    () => groupByCategory(assessments),
+    [assessments],
+  );
+
   return (
     <div className="space-y-6">
       <form
@@ -89,6 +100,20 @@ export function AdminGradeEntry({
           <div className="space-y-1.5 md:col-span-2">
             <Label htmlFor="a-name">Name</Label>
             <Input id="a-name" name="name" required placeholder="Quiz 1" />
+          </div>
+          <div className="space-y-1.5 md:col-span-2">
+            <Label htmlFor="a-category">Category</Label>
+            <Select
+              id="a-category"
+              name="category"
+              defaultValue={DEFAULT_ASSESSMENT_CATEGORY}
+            >
+              {ASSESSMENT_CATEGORIES.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.label}
+                </option>
+              ))}
+            </Select>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="a-max_score">Max score</Label>
@@ -161,10 +186,14 @@ export function AdminGradeEntry({
                 value={selectedAssessmentId}
                 onChange={(e) => setSelectedAssessmentId(e.target.value)}
               >
-                {assessments.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.name} (out of {a.max_score})
-                  </option>
+                {assessmentGroups.map((group) => (
+                  <optgroup key={group.value} label={group.label}>
+                    {group.items.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.name} (out of {a.max_score})
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
               </Select>
             </div>

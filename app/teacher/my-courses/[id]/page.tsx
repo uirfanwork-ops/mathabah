@@ -88,7 +88,7 @@ export default async function TeacherCourseDetailPage({
   ] = await Promise.all([
     supabase
       .from("assessments")
-      .select("id, name, description, max_score, weight, due_date")
+      .select("id, name, category, description, max_score, weight, due_date")
       .eq("course_id", course.id)
       .order("created_at"),
     supabase

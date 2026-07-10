@@ -63,7 +63,7 @@ export default async function CourseDetailPage({
       .order("enrolled_at", { ascending: false }),
     supabase
       .from("assessments")
-      .select("id, name, max_score, weight, due_date")
+      .select("id, name, category, max_score, weight, due_date")
       .eq("course_id", course.id)
       .order("due_date", { ascending: true, nullsFirst: false }),
     supabase
