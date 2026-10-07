@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
+import { auditLog } from "@/lib/notify";
 import { sendEnrollmentNotification } from "@/lib/resend";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -82,6 +83,8 @@ export async function updateStudentProfile(formData: FormData) {
     .eq("id", student.id);
   if (studentErr) throw studentErr;
 
+  await auditLog(profile.id, "update_own_profile", "profile", profile.id);
+
   revalidatePath("/student/profile");
   revalidatePath("/student");
 }
@@ -109,6 +112,11 @@ export async function requestEnrollment(formData: FormData) {
     .insert({ student_id: student.id, course_id });
 
   if (error && !`${error.message}`.includes("duplicate")) throw error;
+
+  await auditLog(profile.id, "self_enroll", "enrollment", null, {
+    student_id: student.id,
+    course_id,
+  });
 
   try {
     const { data: courseRow } = await svc

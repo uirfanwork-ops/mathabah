@@ -339,6 +339,69 @@ export async function sendNewResource(params: {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// 11. Registration → confirm email address (sent through Resend, not
+//     Supabase's built-in mailer, so it uses the same verified sender as every
+//     other email).
+// ─────────────────────────────────────────────────────────────────────────────
+export async function sendEmailConfirmation(params: {
+  to: string;
+  fullName: string;
+  confirmUrl: string;
+}) {
+  const client = getClient();
+  if (!client) return { skipped: true };
+
+  return client.emails.send({
+    from: fromAddress,
+    to: params.to,
+    subject: "Confirm your email — Mathabah Institute",
+    html: wrap(
+      "Confirm your email address",
+      `<p>Assalamu alaikum ${escapeHtml(params.fullName)},</p>
+       <p>Thank you for registering with Mathabah Institute. Please confirm that this email address is yours.</p>
+       <p>
+         <a href="${escapeHtml(params.confirmUrl)}" style="display:inline-block;background:#7a0a13;color:#f5ecd6;padding:10px 18px;border-radius:6px;text-decoration:none;border:1px solid #c9a14a;">
+           Confirm my email
+         </a>
+       </p>
+       <p>Once confirmed, your registration is sent to the administration for approval. You will receive another email when your account is approved.</p>
+       <p style="color:#888;font-size:12px;">If you did not register, you can ignore this email.</p>`,
+    ),
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 12. Something assigned to / changed on a user's account → email
+// ─────────────────────────────────────────────────────────────────────────────
+export async function sendAccountNotice(params: {
+  to: string;
+  fullName: string;
+  subject: string;
+  message: string;
+  linkPath?: string;
+}) {
+  const client = getClient();
+  if (!client) return { skipped: true };
+
+  return client.emails.send({
+    from: fromAddress,
+    to: params.to,
+    subject: params.subject,
+    html: wrap(
+      escapeHtml(params.subject),
+      `<p>Dear ${escapeHtml(params.fullName)},</p>
+       <p>${escapeHtml(params.message)}</p>
+       <p>
+         <a href="${appUrl}${params.linkPath ?? "/dashboard"}" style="display:inline-block;background:#7a0a13;color:#f5ecd6;padding:10px 18px;border-radius:6px;text-decoration:none;border:1px solid #c9a14a;">
+           Open portal
+         </a>
+       </p>
+       <p style="color:#888;font-size:12px;">If you did not expect this change, please contact the administration office.</p>`,
+    ),
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // helpers
 // ─────────────────────────────────────────────────────────────────────────────
 function escapeHtml(s: string) {

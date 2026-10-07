@@ -15,6 +15,9 @@ export async function middleware(request: NextRequest) {
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api/resend") || // self-serves auth check inside
+    pathname === "/api/auth/register" || // public: creates unconfirmed account
+    pathname === "/api/auth/resend-confirmation" || // public, rate-limited
+    pathname === "/auth/confirm" || // email confirmation link handler
     pathname === "/favicon.ico"
   ) {
     return response;

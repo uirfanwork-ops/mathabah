@@ -72,6 +72,16 @@ export async function POST(request: Request) {
 
   if (body.action === "approve") {
     const role = body.role ?? target.role ?? "student";
+
+    // Approval also confirms the email so the user can sign in.
+    const { error: confirmError } = await svc.auth.admin.updateUserById(
+      target.id,
+      { email_confirm: true },
+    );
+    if (confirmError) {
+      return NextResponse.json({ error: confirmError.message }, { status: 500 });
+    }
+
     const { error: updateError } = await svc
       .from("profiles")
       .update({

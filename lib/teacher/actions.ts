@@ -6,6 +6,7 @@ import {
   createClient,
   createServiceRoleClient,
 } from "@/lib/supabase/server";
+import { auditLog } from "@/lib/notify";
 import {
   sendGradesUpdated,
   sendNewAssessment,
@@ -106,6 +107,11 @@ export async function recordAttendance(formData: FormData) {
     if (error) throw error;
   }
 
+  await auditLog(profile.id, "record_attendance", "course", courseId, {
+    session_date: sessionDate,
+    count: rows.length,
+  });
+
   revalidatePath(`/teacher/my-courses/${courseId}`);
 }
 
@@ -113,7 +119,7 @@ export async function recordAttendance(formData: FormData) {
 // Assessments + grades
 // ─────────────────────────────────────────────────────────────────────────────
 export async function createAssessment(formData: FormData) {
-  const { supabase, teacher } = await requireTeacher();
+  const { supabase, teacher, profile } = await requireTeacher();
   const courseId = String(formData.get("course_id") ?? "");
   const name = String(formData.get("name") ?? "").trim();
   const dueDate = String(formData.get("due_date") ?? "") || null;
@@ -131,6 +137,11 @@ export async function createAssessment(formData: FormData) {
     due_date: dueDate,
   });
   if (error) throw error;
+
+  await auditLog(profile.id, "create_assessment", "assessment", null, {
+    course_id: courseId,
+    name,
+  });
 
   try {
     const svc = createServiceRoleClient();
@@ -226,6 +237,12 @@ export async function recordGrades(formData: FormData) {
       .upsert(rows, { onConflict: "enrollment_id,assessment_id" });
     if (error) throw error;
 
+    await auditLog(profile.id, "record_grades", "grade", null, {
+      course_id: courseId,
+      assessment_id: assessmentId,
+      count: rows.length,
+    });
+
     try {
       const svc = createServiceRoleClient();
       const gradedIds = rows.map((r) => r.enrollment_id);
@@ -320,6 +337,11 @@ export async function submitTeacherReport(formData: FormData) {
     .single();
   if (error) throw error;
 
+  await auditLog(profile.id, "submit_teacher_report", "teacher_report", report?.id ?? null, {
+    student_id: studentId,
+    type,
+  });
+
   // Look up student name for the email
   const { data: studentRow } = await supabase
     .from("students")
@@ -401,6 +423,11 @@ export async function addCourseResource(formData: FormData) {
     uploaded_by: profile.id,
   });
   if (error) throw error;
+
+  await auditLog(profile.id, "add_course_resource", "course_resource", null, {
+    course_id: courseId,
+    name,
+  });
 
   try {
     const svc = createServiceRoleClient();

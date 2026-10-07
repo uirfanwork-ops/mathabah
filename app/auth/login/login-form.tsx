@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/client";
+import { ResendConfirmationButton } from "@/components/auth/ResendConfirmationButton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,11 +13,20 @@ import { Label } from "@/components/ui/label";
 export function LoginForm() {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const [error, setError] = useState<string | null>(
+    searchParams.get("error") === "confirm_failed"
+      ? "That confirmation link is invalid or has expired. Sign in below and we will offer to send you a new one."
+      : null,
+  );
+  const [unconfirmedEmail, setUnconfirmedEmail] = useState<string | null>(
+    null,
+  );
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+    setUnconfirmedEmail(null);
 
     const formData = new FormData(event.currentTarget);
     const email = String(formData.get("email") ?? "");
@@ -29,7 +39,14 @@ export function LoginForm() {
     });
 
     if (signInError) {
-      setError(signInError.message);
+      if (/not confirmed/i.test(signInError.message)) {
+        setError(
+          "Please confirm your email address first. We sent you a confirmation link when you registered.",
+        );
+        setUnconfirmedEmail(email);
+      } else {
+        setError(signInError.message);
+      }
       return;
     }
 
@@ -45,6 +62,9 @@ export function LoginForm() {
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
+      )}
+      {unconfirmedEmail && (
+        <ResendConfirmationButton email={unconfirmedEmail} />
       )}
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>

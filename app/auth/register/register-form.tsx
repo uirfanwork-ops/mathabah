@@ -3,7 +3,6 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
-import { createClient } from "@/lib/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,34 +27,19 @@ export function RegisterForm() {
       return;
     }
 
-    const supabase = createClient();
-    const { error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: fullName },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
+    const res = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ fullName, email, password }),
     });
-
-    if (signUpError) {
-      setError(signUpError.message);
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setError(result?.error ?? "Could not create account.");
       return;
     }
 
-    // Notify admin via Resend (best effort — never block the user).
-    try {
-      await fetch("/api/resend/send-approval", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ fullName, email }),
-      });
-    } catch (e) {
-      console.warn("[register] admin notification failed", e);
-    }
-
     startTransition(() => {
-      router.replace("/auth/pending");
+      router.replace(`/auth/check-email?email=${encodeURIComponent(email)}`);
       router.refresh();
     });
   }

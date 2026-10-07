@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
+import { notifyProfile } from "@/lib/notify";
 import {
   sendApprovalRejection,
   sendApprovalWelcome,
@@ -53,6 +54,25 @@ async function logAudit(
   });
 }
 
+async function notifyTeacherAssigned(teacherId: string, courseId: string) {
+  try {
+    const svc = createServiceRoleClient();
+    const [{ data: t }, { data: c }] = await Promise.all([
+      svc.from("teachers").select("profile_id").eq("id", teacherId).maybeSingle(),
+      svc.from("courses").select("name, code").eq("id", courseId).maybeSingle(),
+    ]);
+    if (!t?.profile_id || !c) return;
+    await notifyProfile(t.profile_id, {
+      type: "assignment",
+      title: `You were assigned to ${c.name}`,
+      message: `You are now the teacher for ${c.code ? `${c.code} — ` : ""}${c.name}. You can manage assessments, grades, attendance and resources from your portal.`,
+      link: `/teacher/my-courses/${courseId}`,
+    });
+  } catch (e) {
+    console.warn("[notifyTeacherAssigned] failed", e);
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Account approvals
 // ─────────────────────────────────────────────────────────────────────────────
@@ -73,6 +93,15 @@ export async function approveAccount(formData: FormData) {
     .eq("id", targetId)
     .single();
   if (fetchError || !target) throw new Error("Profile not found");
+
+  // The admin has vetted this person, so approval also confirms the email
+  // address. Without this an approved user could still be blocked at login
+  // with "Email not confirmed".
+  const { error: confirmError } = await svc.auth.admin.updateUserById(
+    targetId,
+    { email_confirm: true },
+  );
+  if (confirmError) throw new Error(confirmError.message);
 
   // Update profile: approve + assign role
   const { error: updateError } = await svc
@@ -359,6 +388,22 @@ export async function updateStudent(formData: FormData) {
   }
 
   await logAudit(admin.id, "update_student", "student", studentId);
+  {
+    const { data: sRow } = await createServiceRoleClient()
+      .from("students")
+      .select("profile_id")
+      .eq("id", studentId)
+      .maybeSingle();
+    if (sRow?.profile_id) {
+      await notifyProfile(sRow.profile_id, {
+        type: "account",
+        title: "Your account details were updated",
+        message:
+          "An administrator updated your student record. Please review your profile to make sure everything is correct.",
+        link: "/student/profile",
+      });
+    }
+  }
   revalidatePath(`/admin/students/${studentId}`);
   revalidatePath("/admin/students");
 }
@@ -416,6 +461,22 @@ export async function updateTeacher(formData: FormData) {
   if (error) throw error;
 
   await logAudit(admin.id, "update_teacher", "teacher", teacherId);
+  {
+    const { data: tRow } = await createServiceRoleClient()
+      .from("teachers")
+      .select("profile_id")
+      .eq("id", teacherId)
+      .maybeSingle();
+    if (tRow?.profile_id) {
+      await notifyProfile(tRow.profile_id, {
+        type: "account",
+        title: "Your account details were updated",
+        message:
+          "An administrator updated your teacher record. Please review your profile to make sure everything is correct.",
+        link: "/teacher",
+      });
+    }
+  }
   revalidatePath(`/admin/teachers/${teacherId}`);
   revalidatePath("/admin/teachers");
 }
@@ -539,7 +600,10 @@ export async function createCourse(formData: FormData) {
     .single();
   if (error) throw error;
 
-  await logAudit(admin.id, "create_course", "course", data?.id ?? null);
+  await logAudit(admin.id, "create_course", "course", data?.id ?? null, {
+    teacher_id: teacherId,
+  });
+  if (teacherId && data?.id) await notifyTeacherAssigned(teacherId, data.id);
   revalidatePath("/admin/courses");
 }
 
@@ -552,6 +616,12 @@ export async function updateCourse(formData: FormData) {
 
   const programId = String(formData.get("program_id") ?? "") || null;
   const teacherId = String(formData.get("teacher_id") ?? "") || null;
+
+  const { data: before } = await supabase
+    .from("courses")
+    .select("teacher_id")
+    .eq("id", id)
+    .maybeSingle();
 
   const { error } = await supabase
     .from("courses")
@@ -573,7 +643,13 @@ export async function updateCourse(formData: FormData) {
     .eq("id", id);
   if (error) throw error;
 
-  await logAudit(admin.id, "update_course", "course", id);
+  await logAudit(admin.id, "update_course", "course", id, {
+    teacher_id: teacherId,
+    previous_teacher_id: before?.teacher_id ?? null,
+  });
+  if (teacherId && teacherId !== before?.teacher_id) {
+    await notifyTeacherAssigned(teacherId, id);
+  }
   revalidatePath("/admin/courses");
   revalidatePath(`/admin/courses/${id}`);
   redirect(`/admin/courses/${id}`);
@@ -923,9 +999,35 @@ export async function deleteEnrollment(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const student_id = String(formData.get("student_id") ?? "");
   if (!id) throw new Error("Missing enrollment id");
+  const svcDel = createServiceRoleClient();
+  const { data: enr } = await svcDel
+    .from("enrollments")
+    .select("student_id, course_id, students(profile_id), courses(name)")
+    .eq("id", id)
+    .maybeSingle();
+
   const { error } = await supabase.from("enrollments").delete().eq("id", id);
   if (error) throw error;
-  await logAudit(admin.id, "delete_enrollment", "enrollment", id);
+  await logAudit(admin.id, "delete_enrollment", "enrollment", id, {
+    student_id: enr?.student_id ?? student_id,
+    course_id: enr?.course_id ?? null,
+  });
+  {
+    const st: any = Array.isArray((enr as any)?.students)
+      ? (enr as any).students[0]
+      : (enr as any)?.students;
+    const co: any = Array.isArray((enr as any)?.courses)
+      ? (enr as any).courses[0]
+      : (enr as any)?.courses;
+    if (st?.profile_id) {
+      await notifyProfile(st.profile_id, {
+        type: "enrollment",
+        title: `Removed from ${co?.name ?? "a course"}`,
+        message: `You are no longer enrolled in ${co?.name ?? "a course"}. Contact the administration office if this is unexpected.`,
+        link: "/student/my-courses",
+      });
+    }
+  }
   if (student_id) revalidatePath(`/admin/students/${student_id}`);
   revalidatePath("/admin/courses");
 }
@@ -973,6 +1075,20 @@ export async function recordPayment(formData: FormData) {
   // Send confirmation to student — best effort
   try {
     const svc = createServiceRoleClient();
+    const { data: payRow } = await svc
+      .from("students")
+      .select("profile_id")
+      .eq("id", student_id)
+      .maybeSingle();
+    if (payRow?.profile_id) {
+      await svc.from("notifications").insert({
+        user_id: payRow.profile_id,
+        type: "payment",
+        title: "Payment recorded",
+        body: `We recorded your payment of ${insert.currency} ${amount.toFixed(2)}.`,
+        link: "/student/payments",
+      });
+    }
     const { data: studentRow } = await svc
       .from("students")
       .select("profile_id, profiles!inner(full_name, email)")
