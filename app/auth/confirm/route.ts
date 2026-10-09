@@ -21,6 +21,9 @@ export async function GET(request: NextRequest) {
       token_hash: tokenHash,
     });
     if (!error && data.user) {
+      if (type === "recovery") {
+        return NextResponse.redirect(new URL("/auth/reset-password", request.url));
+      }
       await onEmailConfirmed(data.user.id);
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }

@@ -371,6 +371,35 @@ export async function sendEmailConfirmation(params: {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// 13. Forgot password → reset link
+// ─────────────────────────────────────────────────────────────────────────────
+export async function sendPasswordReset(params: {
+  to: string;
+  fullName: string;
+  resetUrl: string;
+}) {
+  const client = getClient();
+  if (!client) return { skipped: true };
+
+  return client.emails.send({
+    from: fromAddress,
+    to: params.to,
+    subject: "Reset your password — Mathabah Institute",
+    html: wrap(
+      "Reset your password",
+      `<p>Dear ${escapeHtml(params.fullName)},</p>
+       <p>We received a request to reset the password for your Mathabah Institute account.</p>
+       <p>
+         <a href="${escapeHtml(params.resetUrl)}" style="display:inline-block;background:#7a0a13;color:#f5ecd6;padding:10px 18px;border-radius:6px;text-decoration:none;border:1px solid #c9a14a;">
+           Choose a new password
+         </a>
+       </p>
+       <p style="color:#888;font-size:12px;">This link expires in one hour and can be used once. If you did not request a reset, you can ignore this email — your password will not change.</p>`,
+    ),
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 12. Something assigned to / changed on a user's account → email
 // ─────────────────────────────────────────────────────────────────────────────
 export async function sendAccountNotice(params: {

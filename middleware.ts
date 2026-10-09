@@ -17,6 +17,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/api/resend") || // self-serves auth check inside
     pathname === "/api/auth/register" || // public: creates unconfirmed account
     pathname === "/api/auth/resend-confirmation" || // public, rate-limited
+    pathname === "/api/auth/forgot-password" || // public, rate-limited
     pathname === "/auth/confirm" || // email confirmation link handler
     pathname === "/favicon.ico"
   ) {
@@ -45,7 +46,9 @@ export async function middleware(request: NextRequest) {
 
   // ─── Pending / rejected / suspended → holding screen ───────────────────
   if (profile.status !== "approved") {
-    if (pathname === "/auth/pending") return response;
+    if (pathname === "/auth/pending" || pathname === "/auth/reset-password") {
+      return response;
+    }
     const url = request.nextUrl.clone();
     url.pathname = "/auth/pending";
     return NextResponse.redirect(url);
@@ -62,6 +65,7 @@ export async function middleware(request: NextRequest) {
   if (
     pathname.startsWith("/auth/") &&
     pathname !== "/auth/complete-profile" &&
+    pathname !== "/auth/reset-password" &&
     pathname !== "/auth/callback"
   ) {
     const url = request.nextUrl.clone();
