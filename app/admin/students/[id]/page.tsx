@@ -122,6 +122,12 @@ export default async function StudentProfilePage({
               {profile.full_name}
             </h1>
             <p className="text-sm text-muted-foreground">{profile.email}</p>
+            <Link
+              href={`/admin/users/${profile.id}`}
+              className="mt-1 inline-block text-sm font-medium text-brand-gold hover:underline"
+            >
+              Edit account &amp; role →
+            </Link>
             <div className="mt-1 flex items-center gap-2">
               {profile.display_id && (
                 <Badge variant="outline" className="font-mono">

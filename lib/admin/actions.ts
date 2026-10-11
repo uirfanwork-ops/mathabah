@@ -1111,3 +1111,144 @@ export async function recordPayment(formData: FormData) {
   revalidatePath("/admin/payments");
   revalidatePath(`/admin/students/${student_id}`);
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Unified account editor (any role): profile details, role and status
+// ─────────────────────────────────────────────────────────────────────────────
+export async function adminUpdateUser(formData: FormData) {
+  const { profile: admin } = await requireAdmin();
+  const profileId = String(formData.get("profile_id") ?? "");
+  if (!profileId) throw new Error("Missing profile id");
+
+  const fullName = String(formData.get("full_name") ?? "").trim();
+  if (!fullName) throw new Error("Full name is required");
+
+  const role = String(formData.get("role") ?? "") as
+    | "admin"
+    | "teacher"
+    | "student";
+  const status = String(formData.get("status") ?? "") as
+    | "pending"
+    | "approved"
+    | "rejected"
+    | "suspended";
+  if (!["admin", "teacher", "student"].includes(role)) {
+    throw new Error("Invalid role");
+  }
+  if (!["pending", "approved", "rejected", "suspended"].includes(status)) {
+    throw new Error("Invalid status");
+  }
+
+  const svc = createServiceRoleClient();
+  const { data: before } = await svc
+    .from("profiles")
+    .select("id, full_name, email, role, status")
+    .eq("id", profileId)
+    .single();
+  if (!before) throw new Error("Profile not found");
+
+  const roleChanged = before.role !== role;
+  const statusChanged = before.status !== status;
+
+  // Lock-out protection: an admin can't demote/suspend themselves, and the
+  // last approved admin can never be removed.
+  if (before.role === "admin" && before.status === "approved") {
+    if (profileId === admin.id && (roleChanged || statusChanged)) {
+      throw new Error(
+        "You can't change your own role or status. Ask another admin to do it.",
+      );
+    }
+    if (roleChanged || statusChanged) {
+      const { count } = await svc
+        .from("profiles")
+        .select("id", { count: "exact", head: true })
+        .eq("role", "admin")
+        .eq("status", "approved")
+        .neq("id", profileId);
+      if ((count ?? 0) < 1) {
+        throw new Error("At least one approved admin must remain.");
+      }
+    }
+  }
+
+  const nullable = (k: string) => {
+    const v = String(formData.get(k) ?? "").trim();
+    return v === "" ? null : v;
+  };
+
+  const update: Record<string, unknown> = {
+    full_name: fullName,
+    phone: nullable("phone"),
+    address: nullable("address"),
+    city: nullable("city"),
+    country: nullable("country"),
+    role,
+    status,
+  };
+  if (statusChanged && status === "approved") {
+    update.approved_by = admin.id;
+    update.approved_at = new Date().toISOString();
+  }
+
+  const { error } = await svc.from("profiles").update(update).eq("id", profileId);
+  if (error) throw new Error(error.message);
+
+  // Make sure the role-specific row exists so lists/joins keep working.
+  if (role === "student") {
+    const { error: e } = await svc
+      .from("students")
+      .upsert({ profile_id: profileId }, { onConflict: "profile_id" });
+    if (e) throw new Error(e.message);
+  } else if (role === "teacher") {
+    const { error: e } = await svc
+      .from("teachers")
+      .upsert({ profile_id: profileId }, { onConflict: "profile_id" });
+    if (e) throw new Error(e.message);
+  }
+
+  // Approving someone by any route also verifies their email, so they can sign in.
+  if (statusChanged && status === "approved") {
+    await svc.auth.admin.updateUserById(profileId, { email_confirm: true });
+  }
+
+  await logAudit(admin.id, "update_user", "profile", profileId, {
+    before: {
+      full_name: before.full_name,
+      role: before.role,
+      status: before.status,
+    },
+    after: { full_name: fullName, role, status },
+  });
+
+  if (statusChanged && status === "approved") {
+    try {
+      await sendApprovalWelcome({ to: before.email, fullName, role });
+    } catch (e) {
+      console.warn("[adminUpdateUser] welcome email failed", e);
+    }
+  } else if (roleChanged || statusChanged) {
+    const bits: string[] = [];
+    if (roleChanged) bits.push(`your role is now ${role}`);
+    if (statusChanged) bits.push(`your account status is now ${status}`);
+    await notifyProfile(profileId, {
+      type: "account",
+      title: "Your account was updated",
+      message: `An administrator updated your account: ${bits.join(" and ")}.`,
+      link: "/dashboard",
+    });
+  } else {
+    await notifyProfile(profileId, {
+      type: "account",
+      title: "Your account details were updated",
+      message: "An administrator updated your profile details.",
+      link: "/dashboard",
+    });
+  }
+
+  revalidatePath(`/admin/users/${profileId}`);
+  revalidatePath("/admin");
+  revalidatePath("/admin/students");
+  revalidatePath("/admin/teachers");
+  revalidatePath("/admin/admins");
+  revalidatePath("/admin/approvals");
+}

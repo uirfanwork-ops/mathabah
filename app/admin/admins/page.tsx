@@ -88,7 +88,11 @@ export default async function AdminsPage({
                 <TableCell className="font-mono text-xs text-brand-gold">
                   {row.display_id ?? "—"}
                 </TableCell>
-                <TableCell className="font-medium text-brand-ink">{row.full_name}</TableCell>
+                <TableCell className="font-medium text-brand-ink">
+                  <Link href={`/admin/users/${row.id}`} className="hover:underline">
+                    {row.full_name}
+                  </Link>
+                </TableCell>
                 <TableCell className="text-muted-foreground">
                   {row.email}
                 </TableCell>

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { AdminSidebar } from "@/components/shared/AdminSidebar";
 import { BrandMark } from "@/components/shared/BrandMark";
+import { MobileMenuTrigger, MobileNav } from "@/components/shared/MobileNav";
 import { NotificationBell } from "@/components/shared/NotificationBell";
 import { SignOutLink } from "@/components/shared/SignOutLink";
 import { createClient } from "@/lib/supabase/server";
@@ -42,11 +43,12 @@ export default async function AdminLayout({
     <div className="flex min-h-screen flex-col bg-white">
       <header className="border-b border-black bg-black">
         <div className="container flex items-center justify-between py-4">
-          <div className="flex items-center gap-6">
-            <Link href="/admin">
+          <div className="flex items-center gap-3 sm:gap-6">
+            <MobileMenuTrigger />
+            <Link href="/admin" className="hidden sm:block">
               <BrandMark />
             </Link>
-            <span className="rounded-full border border-white/30 px-3 py-0.5 text-[10px] uppercase tracking-[0.2em] text-white">
+            <span className="hidden rounded-full border border-white/30 px-3 py-0.5 text-[10px] uppercase tracking-[0.2em] text-white sm:inline">
               Admin
             </span>
           </div>
@@ -59,16 +61,19 @@ export default async function AdminLayout({
               </div>
             </div>
             <NotificationBell href="/admin/notifications" />
-            <SignOutLink />
+            <span className="hidden lg:block">
+              <SignOutLink />
+            </span>
           </div>
         </div>
       </header>
       <div className="flex flex-1">
         <AdminSidebar pendingCount={pendingCount ?? 0} />
-        <main className="portal-main flex-1 px-6 py-10 lg:px-10">
+        <main className="portal-main min-w-0 flex-1 px-4 py-6 pb-28 sm:px-6 lg:px-10 lg:py-10 lg:pb-10">
           {children}
         </main>
       </div>
+      <MobileNav pendingCount={pendingCount ?? 0} />
     </div>
   );
 }

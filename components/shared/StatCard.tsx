@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { cn } from "@/lib/utils";
 
 interface StatCardProps {
@@ -6,6 +8,7 @@ interface StatCardProps {
   hint?: string;
   icon?: React.ReactNode;
   className?: string;
+  href?: string;
   accent?: "gold" | "red" | "emerald";
 }
 
@@ -15,12 +18,17 @@ export function StatCard({
   hint,
   icon,
   className,
+  href,
   accent = "gold",
 }: StatCardProps) {
+  const Wrapper: any = href ? Link : "div";
   return (
-    <div
+    <Wrapper
+      {...(href ? { href } : {})}
       className={cn(
-        "relative overflow-hidden rounded-lg border border-brand-gold/20 bg-card/80 p-5 shadow-lg shadow-black/30 backdrop-blur",
+        "relative block overflow-hidden rounded-lg border border-brand-gold/20 bg-card/80 p-5 shadow-lg shadow-black/30 backdrop-blur",
+        href &&
+          "cursor-pointer transition hover:border-brand-gold/60 hover:shadow-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-gold active:scale-[0.99]",
         className,
       )}
     >
@@ -52,6 +60,6 @@ export function StatCard({
           </div>
         )}
       </div>
-    </div>
+    </Wrapper>
   );
 }

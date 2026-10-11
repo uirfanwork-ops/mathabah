@@ -1,11 +1,14 @@
+import Link from "next/link";
 import {
   BookOpen,
   GraduationCap,
+  Shield,
   ShieldCheck,
   Users,
   Wallet,
 } from "lucide-react";
 
+import { PendingQuickList } from "@/components/admin/PendingQuickList";
 import { AnnouncementsFeed } from "@/components/shared/AnnouncementsFeed";
 import { StatCard } from "@/components/shared/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,6 +29,8 @@ export default async function AdminOverviewPage() {
     { count: pendingApprovals },
     { data: revenueRows },
     { data: latestRegistrations },
+    { count: totalAdmins },
+    { data: pendingList },
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -56,6 +61,17 @@ export default async function AdminOverviewPage() {
       .select("id, full_name, email, role, status, created_at")
       .order("created_at", { ascending: false })
       .limit(6),
+    supabase
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("role", "admin")
+      .eq("status", "approved"),
+    supabase
+      .from("profiles")
+      .select("id, full_name, email, role, created_at")
+      .eq("status", "pending")
+      .order("created_at", { ascending: true })
+      .limit(5),
   ]);
 
   const monthRevenue = (revenueRows ?? []).reduce(
@@ -74,32 +90,46 @@ export default async function AdminOverviewPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      <PendingQuickList pending={pendingList ?? []} total={pendingApprovals ?? 0} />
+
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-6">
         <StatCard
           label="Students"
+          href="/admin/students"
           value={totalStudents ?? 0}
           hint="approved"
           icon={<Users className="h-5 w-5" />}
         />
         <StatCard
           label="Teachers"
+          href="/admin/teachers"
           value={totalTeachers ?? 0}
           hint="approved"
           icon={<GraduationCap className="h-5 w-5" />}
         />
         <StatCard
+          label="Admins"
+          href="/admin/admins"
+          value={totalAdmins ?? 0}
+          hint="approved"
+          icon={<Shield className="h-5 w-5" />}
+        />
+        <StatCard
           label="Courses"
+          href="/admin/courses"
           value={totalCourses ?? 0}
           icon={<BookOpen className="h-5 w-5" />}
         />
         <StatCard
           label="Pending Approvals"
+          href="/admin/approvals"
           value={pendingApprovals ?? 0}
           accent="red"
           icon={<ShieldCheck className="h-5 w-5" />}
         />
         <StatCard
           label="Revenue This Month"
+          href="/admin/payments"
           value={formatCurrency(monthRevenue)}
           accent="emerald"
           icon={<Wallet className="h-5 w-5" />}
@@ -118,9 +148,10 @@ export default async function AdminOverviewPage() {
               </p>
             ) : (
               (latestRegistrations ?? []).map((p) => (
-                <div
+                <Link
                   key={p.id}
-                  className="flex items-center justify-between rounded-md border border-brand-gold/10 bg-brand-ink/30 p-3"
+                  href={`/admin/users/${p.id}`}
+                  className="flex items-center justify-between gap-3 rounded-md border border-brand-gold/10 bg-brand-ink/30 p-3 transition hover:border-brand-gold/50"
                 >
                   <div>
                     <div className="font-medium text-brand-goldlight">
@@ -141,7 +172,7 @@ export default async function AdminOverviewPage() {
                   >
                     {p.status}
                   </Badge>
-                </div>
+                </Link>
               ))
             )}
           </CardContent>
