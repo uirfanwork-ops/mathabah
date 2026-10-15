@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
 
 import { buildConfirmUrl } from "@/lib/auth/email-confirmation";
+import {
+  FIELD_LABELS,
+  REQUIRED,
+  STUDENT_FIELDS,
+  TEACHER_FIELDS,
+  type RequestedRole,
+} from "@/lib/auth/registration";
 import { sendEmailConfirmation } from "@/lib/resend";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 
@@ -14,7 +21,13 @@ export const runtime = "nodejs";
  * link (see lib/auth/email-confirmation.ts → onEmailConfirmed).
  */
 export async function POST(request: Request) {
-  let body: { fullName?: string; email?: string; password?: string };
+  let body: {
+    fullName?: string;
+    email?: string;
+    password?: string;
+    accountType?: string;
+    details?: Record<string, unknown>;
+  };
   try {
     body = await request.json();
   } catch {
@@ -38,12 +51,41 @@ export async function POST(request: Request) {
     );
   }
 
+  const accountType: RequestedRole =
+    body.accountType === "teacher" ? "teacher" : "student";
+  if (body.accountType !== "teacher" && body.accountType !== "student") {
+    return NextResponse.json(
+      { error: "Please choose whether you are registering as a student or a teacher." },
+      { status: 400 },
+    );
+  }
+  const allowed = accountType === "teacher" ? TEACHER_FIELDS : STUDENT_FIELDS;
+  const details: Record<string, string> = {};
+  for (const k of allowed) {
+    const v = String(body.details?.[k] ?? "").trim().slice(0, 2000);
+    if (v) details[k] = v;
+  }
+  for (const k of REQUIRED[accountType]) {
+    if (!details[k]) {
+      return NextResponse.json(
+        { error: `${FIELD_LABELS[k]} is required.` },
+        { status: 400 },
+      );
+    }
+  }
+
   const svc = createServiceRoleClient();
   const { data, error } = await svc.auth.admin.generateLink({
     type: "signup",
     email,
     password,
-    options: { data: { full_name: fullName } },
+    options: {
+      data: {
+        full_name: fullName,
+        requested_role: accountType,
+        registration: details,
+      },
+    },
   });
 
   if (error || !data?.user) {
@@ -57,6 +99,11 @@ export async function POST(request: Request) {
       },
       { status: exists ? 409 : 400 },
     );
+  }
+
+  // Phone lives on profiles; the rest stays in metadata until approval.
+  if (details.phone) {
+    await svc.from("profiles").update({ phone: details.phone }).eq("id", data.user.id);
   }
 
   const hashed = data.properties?.hashed_token;
@@ -77,7 +124,7 @@ export async function POST(request: Request) {
     action: "register",
     entity_type: "profile",
     entity_id: data.user.id,
-    metadata: { email },
+    metadata: { email, requested_role: accountType },
   });
 
   return NextResponse.json({ ok: true });

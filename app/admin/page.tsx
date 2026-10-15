@@ -8,6 +8,7 @@ import {
   Wallet,
 } from "lucide-react";
 
+import { getRegistrations } from "@/lib/admin/registrations";
 import { PendingQuickList } from "@/components/admin/PendingQuickList";
 import { AnnouncementsFeed } from "@/components/shared/AnnouncementsFeed";
 import { StatCard } from "@/components/shared/StatCard";
@@ -74,6 +75,10 @@ export default async function AdminOverviewPage() {
       .limit(5),
   ]);
 
+  const pendingRegs = await getRegistrations(
+    (pendingList ?? []).map((p: { id: string }) => p.id),
+  );
+
   const monthRevenue = (revenueRows ?? []).reduce(
     (sum, r: { amount: number | string }) => sum + Number(r.amount ?? 0),
     0,
@@ -90,7 +95,11 @@ export default async function AdminOverviewPage() {
         </p>
       </div>
 
-      <PendingQuickList pending={pendingList ?? []} total={pendingApprovals ?? 0} />
+      <PendingQuickList
+        pending={pendingList ?? []}
+        total={pendingApprovals ?? 0}
+        registrations={pendingRegs}
+      />
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-6">
         <StatCard

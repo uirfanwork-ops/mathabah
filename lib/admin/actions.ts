@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
 import { notifyProfile } from "@/lib/notify";
+import { readRegistration } from "@/lib/auth/registration";
 import {
   sendApprovalRejection,
   sendApprovalWelcome,
@@ -120,15 +121,47 @@ export async function approveAccount(formData: FormData) {
   // teachers row leaves the user invisible on /admin/students (because the
   // list pages join through those tables) and breaks every downstream
   // operation that expects to resolve a student_id / teacher_id.
+  // Carry the answers from the registration form into the role record.
+  const { data: authUser } = await svc.auth.admin.getUserById(targetId);
+  const { details } = readRegistration(authUser?.user?.user_metadata);
+  const pick = (obj: Record<string, string | undefined>) =>
+    Object.fromEntries(Object.entries(obj).filter(([, v]) => v));
+
   if (role === "student") {
-    const { error: roleRowError } = await svc
-      .from("students")
-      .upsert({ profile_id: targetId }, { onConflict: "profile_id" });
+    const { error: roleRowError } = await svc.from("students").upsert(
+      {
+        profile_id: targetId,
+        ...pick({
+          date_of_birth: details.date_of_birth,
+          gender: details.gender,
+          guardian_name: details.guardian_name,
+          guardian_phone: details.guardian_phone,
+        }),
+      },
+      { onConflict: "profile_id" },
+    );
     if (roleRowError) throw roleRowError;
   } else if (role === "teacher") {
-    const { error: roleRowError } = await svc
-      .from("teachers")
-      .upsert({ profile_id: targetId }, { onConflict: "profile_id" });
+    const bio = [
+      details.bio,
+      details.subjects ? `Subjects: ${details.subjects}` : "",
+      details.years_experience
+        ? `Teaching experience: ${details.years_experience} years`
+        : "",
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+    const { error: roleRowError } = await svc.from("teachers").upsert(
+      {
+        profile_id: targetId,
+        ...pick({
+          specialization: details.specialization,
+          qualifications: details.qualifications,
+          bio: bio || undefined,
+        }),
+      },
+      { onConflict: "profile_id" },
+    );
     if (roleRowError) throw roleRowError;
   }
 

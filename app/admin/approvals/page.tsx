@@ -1,5 +1,6 @@
 import { AccountApprovalCard } from "@/components/admin/AccountApprovalCard";
 import { Card, CardContent } from "@/components/ui/card";
+import { getRegistrations } from "@/lib/admin/registrations";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Approvals" };
@@ -12,6 +13,8 @@ export default async function ApprovalsPage() {
     .select("id, full_name, email, role, created_at")
     .eq("status", "pending")
     .order("created_at", { ascending: true });
+
+  const regs = await getRegistrations((pending ?? []).map((p) => p.id));
 
   return (
     <div className="space-y-6">
@@ -36,7 +39,7 @@ export default async function ApprovalsPage() {
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
           {(pending ?? []).map((p) => (
-            <AccountApprovalCard key={p.id} profile={p} />
+            <AccountApprovalCard key={p.id} profile={p} registration={regs[p.id]} />
           ))}
         </div>
       )}

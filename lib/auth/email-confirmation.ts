@@ -1,4 +1,5 @@
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { readRegistration } from "@/lib/auth/registration";
 import {
   sendEmailConfirmation,
   sendNewRegistrationToAdmin,
@@ -100,11 +101,14 @@ export async function onEmailConfirmed(userId: string) {
 
   if (profile.status !== "pending") return;
 
+  const { data: authUser } = await svc.auth.admin.getUserById(userId);
+  const { requestedRole } = readRegistration(authUser?.user?.user_metadata);
+
   try {
     await sendNewRegistrationToAdmin({
       fullName: profile.full_name ?? profile.email,
       email: profile.email,
-      requestedRole: profile.role,
+      requestedRole: requestedRole ?? profile.role,
     });
   } catch (e) {
     console.warn("[onEmailConfirmed] admin notification failed", e);
@@ -120,7 +124,7 @@ export async function onEmailConfirmed(userId: string) {
       user_id: a.id,
       type: "registration",
       title: `New registration: ${profile.full_name ?? profile.email}`,
-      body: "Email verified — awaiting your approval.",
+      body: `Registered as ${requestedRole ?? "student"} — email verified, awaiting your approval.`,
       link: "/admin/approvals",
     }));
     if (rows.length > 0) await svc.from("notifications").insert(rows);

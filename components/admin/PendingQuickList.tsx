@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { formatDate } from "@/lib/utils";
+import type { Registration } from "@/lib/admin/registrations";
 
 interface PendingProfile {
   id: string;
@@ -18,9 +19,11 @@ interface PendingProfile {
 export function PendingQuickList({
   pending,
   total,
+  registrations = {},
 }: {
   pending: PendingProfile[];
   total: number;
+  registrations?: Record<string, Registration>;
 }) {
   if (pending.length === 0) return null;
 
@@ -59,9 +62,21 @@ export function PendingQuickList({
               <div className="break-all text-xs text-muted-foreground">
                 {p.email} · registered {formatDate(p.created_at)}
               </div>
+              {registrations[p.id]?.requestedRole && (
+                <div className="mt-1 text-xs font-semibold uppercase tracking-wider text-brand-gold">
+                  Registered as {registrations[p.id]!.requestedRole}
+                  {registrations[p.id]!.details.specialization
+                    ? ` · ${registrations[p.id]!.details.specialization}`
+                    : ""}
+                </div>
+              )}
             </div>
             <div className="grid grid-cols-[1fr_auto_auto] items-center gap-2">
-              <Select name="role" defaultValue={p.role} aria-label="Approve as">
+              <Select
+                name="role"
+                defaultValue={registrations[p.id]?.requestedRole ?? p.role}
+                aria-label="Approve as"
+              >
                 <option value="student">Student</option>
                 <option value="teacher">Teacher</option>
                 <option value="admin">Admin</option>

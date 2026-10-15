@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { RegistrationSummary } from "@/components/admin/RegistrationSummary";
+import type { Registration } from "@/lib/admin/registrations";
 import { formatDate, getInitials } from "@/lib/utils";
 
 interface AccountApprovalCardProps {
@@ -13,9 +15,14 @@ interface AccountApprovalCardProps {
     role: string;
     created_at: string;
   };
+  registration?: Registration;
 }
 
-export function AccountApprovalCard({ profile }: AccountApprovalCardProps) {
+export function AccountApprovalCard({
+  profile,
+  registration,
+}: AccountApprovalCardProps) {
+  const defaultRole = registration?.requestedRole ?? profile.role;
   return (
     <div className="rounded-lg border border-brand-gold/20 bg-card/70 p-5 shadow-md shadow-black/30">
       <div className="flex items-start justify-between gap-4">
@@ -38,6 +45,10 @@ export function AccountApprovalCard({ profile }: AccountApprovalCardProps) {
         <Badge variant="warning">pending</Badge>
       </div>
 
+      <div className="mt-4">
+        <RegistrationSummary reg={registration} />
+      </div>
+
       <div className="mt-5 grid gap-4 md:grid-cols-2">
         {/* Approve */}
         <form action={approveAccount} className="space-y-2">
@@ -45,7 +56,7 @@ export function AccountApprovalCard({ profile }: AccountApprovalCardProps) {
           <label className="text-xs uppercase tracking-wider text-brand-gold/70">
             Approve as
           </label>
-          <Select name="role" defaultValue={profile.role}>
+          <Select name="role" defaultValue={defaultRole}>
             <option value="student">Student</option>
             <option value="teacher">Teacher</option>
             <option value="admin">Admin</option>
