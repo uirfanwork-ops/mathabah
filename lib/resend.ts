@@ -22,6 +22,43 @@ function getClient(): Resend | null {
   return new Resend(apiKey);
 }
 
+/**
+ * Send through Resend and surface failures. Resend reports rejections as a
+ * return value rather than an exception, so without this a rejected email
+ * looks exactly like a delivered one. Multi-recipient sends go out as one
+ * email per recipient so students never see each other's addresses.
+ */
+async function deliver(
+  client: Resend,
+  payload: { from: string; to: string | string[]; subject: string; html: string },
+) {
+  const recipients = Array.isArray(payload.to) ? payload.to : [payload.to];
+  const log = (err: unknown) =>
+    console.error(`[resend] send failed — "${payload.subject}" →`, err);
+
+  if (recipients.length > 1) {
+    const chunks: string[][] = [];
+    for (let i = 0; i < recipients.length; i += 100) chunks.push(recipients.slice(i, i + 100));
+    for (const chunk of chunks) {
+      const { error } = await client.batch.send(
+        chunk.map((to) => ({ from: payload.from, to, subject: payload.subject, html: payload.html })),
+      );
+      if (error) {
+        log(error);
+        throw new Error(`Resend: ${error.message}`);
+      }
+    }
+    return { sent: recipients.length };
+  }
+
+  const { data, error } = await client.emails.send({ ...payload, to: recipients[0] });
+  if (error) {
+    log(error);
+    throw new Error(`Resend: ${error.message}`);
+  }
+  return { id: data?.id };
+}
+
 function wrap(title: string, body: string) {
   return `<!doctype html>
 <html>
@@ -54,7 +91,7 @@ export async function sendNewRegistrationToAdmin(params: {
   const client = getClient();
   if (!client) return { skipped: true };
 
-  return client.emails.send({
+  return deliver(client, {
     from: fromAddress,
     to: adminEmail,
     subject: "New account pending approval",
@@ -86,7 +123,7 @@ export async function sendApprovalWelcome(params: {
   const client = getClient();
   if (!client) return { skipped: true };
 
-  return client.emails.send({
+  return deliver(client, {
     from: fromAddress,
     to: params.to,
     subject: "Welcome to Mathabah Institute",
@@ -114,7 +151,7 @@ export async function sendApprovalRejection(params: {
   const client = getClient();
   if (!client) return { skipped: true };
 
-  return client.emails.send({
+  return deliver(client, {
     from: fromAddress,
     to: params.to,
     subject: "Account registration update",
@@ -140,7 +177,7 @@ export async function sendTeacherReportToAdmin(params: {
   const client = getClient();
   if (!client) return { skipped: true };
 
-  return client.emails.send({
+  return deliver(client, {
     from: fromAddress,
     to: adminEmail,
     subject: "New student report submitted",
@@ -171,7 +208,7 @@ export async function sendPaymentConfirmation(params: {
   const client = getClient();
   if (!client) return { skipped: true };
 
-  return client.emails.send({
+  return deliver(client, {
     from: fromAddress,
     to: params.to,
     subject: "Payment confirmation",
@@ -201,7 +238,7 @@ export async function sendAnnouncement(params: {
   if (!client) return { skipped: true };
   if (params.to.length === 0) return { skipped: true };
 
-  return client.emails.send({
+  return deliver(client, {
     from: fromAddress,
     to: params.to,
     subject: `Announcement from Mathabah — ${params.title}`,
@@ -225,7 +262,7 @@ export async function sendEnrollmentNotification(params: {
     ? `${escapeHtml(params.courseCode)} — ${escapeHtml(params.courseName)}`
     : escapeHtml(params.courseName);
 
-  return client.emails.send({
+  return deliver(client, {
     from: fromAddress,
     to: params.to,
     subject: `You've been enrolled in ${params.courseName}`,
@@ -255,7 +292,7 @@ export async function sendGradesUpdated(params: {
   const client = getClient();
   if (!client) return { skipped: true };
 
-  return client.emails.send({
+  return deliver(client, {
     from: fromAddress,
     to: params.to,
     subject: `Grades posted for ${params.assessmentName}`,
@@ -291,7 +328,7 @@ export async function sendNewAssessment(params: {
     ? `<p><strong>Due date:</strong> ${escapeHtml(params.dueDate)}</p>`
     : "";
 
-  return client.emails.send({
+  return deliver(client, {
     from: fromAddress,
     to: params.to,
     subject: `New assessment: ${params.assessmentName} — ${params.courseName}`,
@@ -321,7 +358,7 @@ export async function sendNewResource(params: {
   if (!client) return { skipped: true };
   if (params.to.length === 0) return { skipped: true };
 
-  return client.emails.send({
+  return deliver(client, {
     from: fromAddress,
     to: params.to,
     subject: `New resource shared: ${params.resourceName} — ${params.courseName}`,
@@ -351,7 +388,7 @@ export async function sendEmailConfirmation(params: {
   const client = getClient();
   if (!client) return { skipped: true };
 
-  return client.emails.send({
+  return deliver(client, {
     from: fromAddress,
     to: params.to,
     subject: "Confirm your email — Mathabah Institute",
@@ -381,7 +418,7 @@ export async function sendPasswordReset(params: {
   const client = getClient();
   if (!client) return { skipped: true };
 
-  return client.emails.send({
+  return deliver(client, {
     from: fromAddress,
     to: params.to,
     subject: "Reset your password — Mathabah Institute",
@@ -412,7 +449,7 @@ export async function sendAccountNotice(params: {
   const client = getClient();
   if (!client) return { skipped: true };
 
-  return client.emails.send({
+  return deliver(client, {
     from: fromAddress,
     to: params.to,
     subject: params.subject,
