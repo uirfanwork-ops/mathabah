@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
+import { getTeacherIdentity, onlyMine } from "@/lib/teacher/identity";
 
 export const metadata = { title: "New report" };
 
@@ -23,27 +24,28 @@ export default async function NewTeacherReportPage({
   } = await supabase.auth.getUser();
   if (!user) redirect("/auth/login");
 
-  const { data: teacher } = await supabase
-    .from("teachers")
-    .select("id")
-    .eq("profile_id", user.id)
-    .single();
+  const { teacher, isAdmin } = await getTeacherIdentity(user.id);
   if (!teacher) redirect("/teacher");
 
   // All courses owned by this teacher
-  const { data: courses } = await supabase
-    .from("courses")
-    .select("id, name, code")
-    .eq("teacher_id", teacher.id)
-    .order("name");
+  const { data: courses } = await onlyMine(
+    supabase.from("courses").select("id, name, code"),
+    isAdmin,
+    "teacher_id",
+    teacher.id,
+  ).order("name");
 
   // Distinct enrolled students across all teacher's courses
-  const { data: rows } = await supabase
-    .from("enrollments")
-    .select(
-      "student:students(id, profiles(full_name)), course:courses!inner(id, name, code, teacher_id)",
-    )
-    .eq("course.teacher_id", teacher.id);
+  const { data: rows } = await onlyMine(
+    supabase
+      .from("enrollments")
+      .select(
+        "student:students(id, profiles(full_name)), course:courses!inner(id, name, code, teacher_id)",
+      ),
+    isAdmin,
+    "course.teacher_id",
+    teacher.id,
+  );
 
   const seen = new Set<string>();
   const students: { id: string; full_name: string; course_label: string | null }[] = [];

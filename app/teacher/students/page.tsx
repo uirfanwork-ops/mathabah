@@ -12,6 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { createClient } from "@/lib/supabase/server";
+import { getTeacherIdentity, onlyMine } from "@/lib/teacher/identity";
 
 export const metadata = { title: "Students" };
 
@@ -22,21 +23,21 @@ export default async function TeacherStudentsPage() {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data: teacher } = await supabase
-    .from("teachers")
-    .select("id")
-    .eq("profile_id", user.id)
-    .single();
+  const { teacher, isAdmin } = await getTeacherIdentity(user.id);
 
   // RLS allows the teacher to see enrollments for their own courses, so we
   // can pull all enrollments and aggregate by student in JS.
   const { data: rows } = teacher
-    ? await supabase
-        .from("enrollments")
-        .select(
-          "id, status, course:courses!inner(id, name, code, teacher_id), student:students(id, profiles(full_name, email))",
-        )
-        .eq("course.teacher_id", teacher.id)
+    ? await onlyMine(
+        supabase
+          .from("enrollments")
+          .select(
+            "id, status, course:courses!inner(id, name, code, teacher_id), student:students(id, profiles(full_name, email))",
+          ),
+        isAdmin,
+        "course.teacher_id",
+        teacher.id,
+      )
     : { data: [] };
 
   type Aggregated = {

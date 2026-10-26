@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
+import { notifyApproved } from "@/lib/notify";
 import {
   sendApprovalRejection,
   sendApprovalWelcome,
@@ -115,6 +116,8 @@ export async function POST(request: Request) {
       entity_id: target.id,
       metadata: { role },
     });
+
+    await notifyApproved(target.id, role);
 
     try {
       await sendApprovalWelcome({

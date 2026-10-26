@@ -8,6 +8,7 @@ import {
   addCourseResource,
   deleteCourseResource,
 } from "@/lib/teacher/actions";
+import { ResourceUploadForm } from "@/components/shared/ResourceUploadForm";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,74 +43,7 @@ export function CourseResources({
 
   return (
     <div className="space-y-6">
-      <form
-        action={(formData) => {
-          setError(null);
-          formData.set("course_id", courseId);
-          startTransition(async () => {
-            try {
-              await addCourseResource(formData);
-              router.refresh();
-              (document.getElementById(
-                `resource-form-${courseId}`,
-              ) as HTMLFormElement | null)?.reset();
-            } catch (e) {
-              setError(e instanceof Error ? e.message : "Failed");
-            }
-          });
-        }}
-        id={`resource-form-${courseId}`}
-        className="grid gap-4 rounded-md border border-brand-gold/15 bg-brand-ink/20 p-4"
-      >
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="name">Name</Label>
-            <Input
-              id="name"
-              name="name"
-              required
-              placeholder="Handout: Week 1 introduction"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="file_url">File URL</Label>
-            <Input
-              id="file_url"
-              name="file_url"
-              placeholder="https://… (PDF, image, doc)"
-              type="url"
-            />
-          </div>
-          <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="link_url">External link</Label>
-            <Input
-              id="link_url"
-              name="link_url"
-              placeholder="https://… (YouTube, Google Doc, article)"
-              type="url"
-            />
-          </div>
-          <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              name="description"
-              rows={2}
-              placeholder="Short note for students about this resource"
-            />
-          </div>
-        </div>
-        {error && (
-          <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-        <div className="flex justify-end">
-          <Button type="submit" disabled={isPending}>
-            {isPending ? "Adding…" : "Add resource"}
-          </Button>
-        </div>
-      </form>
+      <ResourceUploadForm courseId={courseId} mode="teacher" />
 
       <div className="space-y-2">
         {resources.length === 0 ? (

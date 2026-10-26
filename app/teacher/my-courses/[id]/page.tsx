@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { AttendanceSheet } from "@/components/teacher/AttendanceSheet";
+import { ClassMessageForm } from "@/components/teacher/ClassMessageForm";
 import { CourseResources } from "@/components/teacher/CourseResources";
 import { GradeEntry } from "@/components/teacher/GradeEntry";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +24,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
+import { getTeacherIdentity } from "@/lib/teacher/identity";
 
 export const metadata = { title: "Course" };
 
@@ -39,11 +41,7 @@ export default async function TeacherCourseDetailPage({
   } = await supabase.auth.getUser();
   if (!user) redirect("/auth/login");
 
-  const { data: teacher } = await supabase
-    .from("teachers")
-    .select("id")
-    .eq("profile_id", user.id)
-    .single();
+  const { teacher, isAdmin } = await getTeacherIdentity(user.id);
   if (!teacher) redirect("/teacher");
 
   const { data: course } = await supabase
@@ -54,7 +52,7 @@ export default async function TeacherCourseDetailPage({
     .eq("id", params.id)
     .single();
 
-  if (!course || course.teacher_id !== teacher.id) notFound();
+  if (!course || (!isAdmin && course.teacher_id !== teacher.id)) notFound();
 
   const program = Array.isArray((course as any).program)
     ? (course as any).program[0]
@@ -176,6 +174,7 @@ export default async function TeacherCourseDetailPage({
           <TabsTrigger value="attendance">Attendance</TabsTrigger>
           <TabsTrigger value="grades">Grades</TabsTrigger>
           <TabsTrigger value="resources">Resources</TabsTrigger>
+            <TabsTrigger value="message">Message class</TabsTrigger>
         </TabsList>
 
         <TabsContent value="students">
@@ -282,6 +281,23 @@ export default async function TeacherCourseDetailPage({
               <CourseResources
                 courseId={course.id}
                 resources={resources ?? []}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="message">
+          <Card>
+            <CardHeader>
+              <CardTitle>Message the class</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-4 text-sm text-muted-foreground">
+                Every enrolled student gets this in their portal and by email.
+              </p>
+              <ClassMessageForm
+                courseId={course.id}
+                studentCount={enrollments.filter((e) => e.status === "active").length}
               />
             </CardContent>
           </Card>

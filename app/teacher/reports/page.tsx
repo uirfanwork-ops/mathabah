@@ -18,6 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { createClient } from "@/lib/supabase/server";
+import { getTeacherIdentity } from "@/lib/teacher/identity";
 import { formatDate } from "@/lib/utils";
 
 export const metadata = { title: "Reports" };
@@ -29,11 +30,7 @@ export default async function TeacherReportsPage() {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data: teacher } = await supabase
-    .from("teachers")
-    .select("id")
-    .eq("profile_id", user.id)
-    .single();
+  const { teacher } = await getTeacherIdentity(user.id);
 
   const { data: reports } = teacher
     ? await supabase

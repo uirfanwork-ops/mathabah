@@ -11,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { createClient } from "@/lib/supabase/server";
+import { getTeacherIdentity, onlyMine } from "@/lib/teacher/identity";
 import { formatDate } from "@/lib/utils";
 
 export const metadata = { title: "My Courses" };
@@ -22,20 +23,19 @@ export default async function MyCoursesPage() {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data: teacher } = await supabase
-    .from("teachers")
-    .select("id")
-    .eq("profile_id", user.id)
-    .single();
+  const { teacher, isAdmin } = await getTeacherIdentity(user.id);
 
   const { data: courses } = teacher
-    ? await supabase
-        .from("courses")
-        .select(
-          "id, name, code, schedule, capacity, start_date, end_date, is_active",
-        )
-        .eq("teacher_id", teacher.id)
-        .order("name")
+    ? await onlyMine(
+        supabase
+          .from("courses")
+          .select(
+            "id, name, code, schedule, capacity, start_date, end_date, is_active",
+          ),
+        isAdmin,
+        "teacher_id",
+        teacher.id,
+      ).order("name")
     : { data: [] };
 
   return (
@@ -45,7 +45,7 @@ export default async function MyCoursesPage() {
           My Courses
         </h1>
         <p className="text-muted-foreground">
-          Courses you teach this term.
+          {isAdmin ? "All courses — open any to teach it." : "Courses you teach this term."}
         </p>
       </div>
 

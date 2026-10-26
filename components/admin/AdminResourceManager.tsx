@@ -7,6 +7,7 @@ import {
   adminAddCourseResource,
   adminDeleteCourseResource,
 } from "@/lib/admin/actions";
+import { ResourceUploadForm } from "@/components/shared/ResourceUploadForm";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,79 +38,7 @@ export function AdminResourceManager({
 
   return (
     <div className="space-y-6">
-      <form
-        action={(formData) => {
-          formData.set("course_id", courseId);
-          setMessage(null);
-          startTransition(async () => {
-            try {
-              await adminAddCourseResource(formData);
-              (
-                document.getElementById(
-                  "admin-resource-form",
-                ) as HTMLFormElement
-              )?.reset();
-              setMessage("Resource added.");
-            } catch (e) {
-              setMessage(e instanceof Error ? e.message : "Failed");
-            }
-          });
-        }}
-        id="admin-resource-form"
-        className="rounded-lg border p-4"
-      >
-        <div className="mb-3 text-xs uppercase tracking-wider text-muted-foreground">
-          Add resource
-        </div>
-        <div className="grid gap-3 md:grid-cols-2">
-          <div className="space-y-1.5">
-            <Label htmlFor="r-name">Name</Label>
-            <Input
-              id="r-name"
-              name="name"
-              required
-              placeholder="Lecture notes — Week 1"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="r-link_url">Link URL</Label>
-            <Input
-              id="r-link_url"
-              name="link_url"
-              type="url"
-              placeholder="https://..."
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="r-file_url">File URL</Label>
-            <Input
-              id="r-file_url"
-              name="file_url"
-              type="url"
-              placeholder="https://..."
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="r-description">Description</Label>
-            <Textarea
-              id="r-description"
-              name="description"
-              rows={1}
-              placeholder="Optional"
-            />
-          </div>
-        </div>
-        <div className="mt-3">
-          <Button
-            type="submit"
-            size="sm"
-            variant="secondary"
-            disabled={isPending}
-          >
-            {isPending ? "Adding…" : "Add resource"}
-          </Button>
-        </div>
-      </form>
+      <ResourceUploadForm courseId={courseId} mode="admin" />
 
       {message && (
         <Alert

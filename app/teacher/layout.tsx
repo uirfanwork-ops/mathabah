@@ -24,7 +24,12 @@ export default async function TeacherLayout({
     .eq("id", user.id)
     .single();
 
-  if (!profile || profile.role !== "teacher" || profile.status !== "approved") {
+  const isAdmin = profile?.role === "admin";
+  if (
+    !profile ||
+    (profile.role !== "teacher" && !isAdmin) ||
+    profile.status !== "approved"
+  ) {
     redirect("/dashboard");
   }
 
@@ -41,7 +46,7 @@ export default async function TeacherLayout({
               <BrandMark />
             </Link>
             <span className="rounded-full border border-white/30 px-3 py-0.5 text-[10px] uppercase tracking-[0.2em] text-white">
-              Teacher
+              {isAdmin ? "Admin · teaching" : "Teacher"}
             </span>
           </div>
           <div className="flex items-center gap-4">
@@ -57,6 +62,16 @@ export default async function TeacherLayout({
           </div>
         </div>
       </header>
+      {isAdmin && (
+        <div className="border-b border-brand-gold/40 bg-brand-gold/15 px-6 py-2 text-sm text-brand-ink">
+          You&apos;re using the teacher portal as an administrator — you can
+          upload materials, grade, take attendance and message students in any
+          course.{" "}
+          <Link href="/admin" className="font-semibold underline">
+            Back to admin
+          </Link>
+        </div>
+      )}
       <div className="flex flex-1">
         <TeacherSidebar />
         <main className="portal-main flex-1 px-6 py-10 lg:px-10">

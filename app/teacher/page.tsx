@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
+import { getTeacherIdentity, onlyMine } from "@/lib/teacher/identity";
 import { formatDate } from "@/lib/utils";
 
 export const metadata = { title: "Teacher" };
@@ -29,11 +30,7 @@ export default async function TeacherOverviewPage() {
     .eq("id", user.id)
     .single();
 
-  const { data: teacher } = await supabase
-    .from("teachers")
-    .select("id")
-    .eq("profile_id", user.id)
-    .single();
+  const { teacher, isAdmin } = await getTeacherIdentity(user.id);
 
   if (!teacher) {
     return (
@@ -51,15 +48,20 @@ export default async function TeacherOverviewPage() {
 
   const [{ data: courses }, { count: studentCount }, { data: latestReports }] =
     await Promise.all([
-      supabase
-        .from("courses")
-        .select("id, name, code, schedule, is_active")
-        .eq("teacher_id", teacher.id)
-        .order("name"),
-      supabase
-        .from("enrollments")
-        .select("id, courses!inner(teacher_id)", { count: "exact", head: true })
-        .eq("courses.teacher_id", teacher.id),
+      onlyMine(
+        supabase.from("courses").select("id, name, code, schedule, is_active"),
+        isAdmin,
+        "teacher_id",
+        teacher.id,
+      ).order("name"),
+      onlyMine(
+        supabase
+          .from("enrollments")
+          .select("id, courses!inner(teacher_id)", { count: "exact", head: true }),
+        isAdmin,
+        "courses.teacher_id",
+        teacher.id,
+      ),
       supabase
         .from("teacher_reports")
         .select("id, title, type, created_at, is_visible_to_student")

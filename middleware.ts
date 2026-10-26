@@ -77,7 +77,11 @@ export async function middleware(request: NextRequest) {
   if (pathname.startsWith(ADMIN_PREFIX) && profile.role !== "admin") {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
-  if (pathname.startsWith(TEACHER_PREFIX) && profile.role !== "teacher") {
+  if (
+    pathname.startsWith(TEACHER_PREFIX) &&
+    profile.role !== "teacher" &&
+    profile.role !== "admin"
+  ) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
   if (pathname.startsWith(STUDENT_PREFIX) && profile.role !== "student") {

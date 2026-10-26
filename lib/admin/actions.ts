@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
-import { notifyProfile } from "@/lib/notify";
+import { notifyApproved, notifyProfile } from "@/lib/notify";
 import { readRegistration } from "@/lib/auth/registration";
 import {
   sendApprovalRejection,
@@ -166,6 +166,7 @@ export async function approveAccount(formData: FormData) {
   }
 
   await logAudit(admin.id, "approve_account", "profile", targetId, { role });
+  await notifyApproved(targetId, role);
 
   // Send welcome email — best effort
   try {
@@ -1259,6 +1260,7 @@ export async function adminUpdateUser(formData: FormData) {
     } catch (e) {
       console.warn("[adminUpdateUser] welcome email failed", e);
     }
+    await notifyApproved(profileId, role);
   } else if (roleChanged || statusChanged) {
     const bits: string[] = [];
     if (roleChanged) bits.push(`your role is now ${role}`);

@@ -63,3 +63,15 @@ export async function notifyProfile(
     console.warn("[notifyProfile] failed", n.type, e);
   }
 }
+
+/** In-app + email notice that an account was approved (after admin review). */
+export async function notifyApproved(profileId: string, role: string) {
+  const link =
+    role === "admin" ? "/admin/settings" : role === "teacher" ? "/teacher/settings" : "/student/profile";
+  await notifyProfile(profileId, {
+    type: "account",
+    title: "Your account has been approved",
+    message: `Welcome to Mathabah Learning Centre! Your ${role} account is now active. You can sign in, review your profile and update your details at any time from Settings.`,
+    link,
+  });
+}

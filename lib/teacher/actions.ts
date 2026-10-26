@@ -6,7 +6,8 @@ import {
   createClient,
   createServiceRoleClient,
 } from "@/lib/supabase/server";
-import { auditLog } from "@/lib/notify";
+import { auditLog, notifyProfile } from "@/lib/notify";
+import { getTeacherIdentity } from "@/lib/teacher/identity";
 import {
   sendGradesUpdated,
   sendNewAssessment,
@@ -30,22 +31,28 @@ async function requireTeacher() {
     .eq("id", user.id)
     .single();
 
-  if (!profile || profile.role !== "teacher" || profile.status !== "approved") {
+  const isAdmin = profile?.role === "admin";
+  if (
+    !profile ||
+    (profile.role !== "teacher" && !isAdmin) ||
+    profile.status !== "approved"
+  ) {
     throw new Error("Not authorized");
   }
 
-  const { data: teacher } = await supabase
-    .from("teachers")
-    .select("id")
-    .eq("profile_id", user.id)
-    .single();
-
+  // Admins may act as a teacher for any course; give them a teachers row.
+  const { teacher } = await getTeacherIdentity(user.id);
   if (!teacher) throw new Error("Teacher record missing");
 
-  return { supabase, profile, teacher };
+  return { supabase, profile, teacher: { ...teacher, isAdmin } };
 }
 
-async function assertTeacherOwnsCourse(courseId: string, teacherId: string) {
+async function assertTeacherOwnsCourse(
+  courseId: string,
+  teacherId: string,
+  isAdmin = false,
+) {
+  if (isAdmin) return;
   const supabase = createClient();
   const { data, error } = await supabase
     .from("courses")
@@ -68,7 +75,7 @@ export async function recordAttendance(formData: FormData) {
   const sessionDate = String(formData.get("session_date") ?? "");
   if (!courseId || !sessionDate) throw new Error("Missing course or date");
 
-  await assertTeacherOwnsCourse(courseId, teacher.id);
+  await assertTeacherOwnsCourse(courseId, teacher.id, teacher.isAdmin);
 
   // Pull all enrolled students for the course
   const { data: enrollments, error: enrollErr } = await supabase
@@ -125,7 +132,7 @@ export async function createAssessment(formData: FormData) {
   const dueDate = String(formData.get("due_date") ?? "") || null;
   if (!courseId || !name) throw new Error("Missing fields");
 
-  await assertTeacherOwnsCourse(courseId, teacher.id);
+  await assertTeacherOwnsCourse(courseId, teacher.id, teacher.isAdmin);
 
   const { error } = await supabase.from("assessments").insert({
     course_id: courseId,
@@ -199,7 +206,7 @@ export async function recordGrades(formData: FormData) {
   const courseId = String(formData.get("course_id") ?? "");
   if (!assessmentId || !courseId) throw new Error("Missing fields");
 
-  await assertTeacherOwnsCourse(courseId, teacher.id);
+  await assertTeacherOwnsCourse(courseId, teacher.id, teacher.isAdmin);
 
   const { data: enrollments, error: enrollErr } = await supabase
     .from("enrollments")
@@ -306,7 +313,7 @@ export async function submitTeacherReport(formData: FormData) {
   }
 
   if (courseId) {
-    await assertTeacherOwnsCourse(courseId, teacher.id);
+    await assertTeacherOwnsCourse(courseId, teacher.id, teacher.isAdmin);
   }
 
   // Verify the teacher actually has this student enrolled in one of their courses
@@ -412,7 +419,7 @@ export async function addCourseResource(formData: FormData) {
     throw new Error("Provide at least a file URL or a link URL");
   }
 
-  await assertTeacherOwnsCourse(courseId, teacher.id);
+  await assertTeacherOwnsCourse(courseId, teacher.id, teacher.isAdmin);
 
   const { error } = await supabase.from("course_resources").insert({
     course_id: courseId,
@@ -486,7 +493,7 @@ export async function deleteCourseResource(formData: FormData) {
   const courseId = String(formData.get("course_id") ?? "");
   if (!id || !courseId) throw new Error("Missing fields");
 
-  await assertTeacherOwnsCourse(courseId, teacher.id);
+  await assertTeacherOwnsCourse(courseId, teacher.id, teacher.isAdmin);
 
   const { error } = await supabase
     .from("course_resources")
@@ -496,4 +503,54 @@ export async function deleteCourseResource(formData: FormData) {
 
   revalidatePath(`/teacher/my-courses/${courseId}`);
   revalidatePath(`/student/my-courses/${courseId}`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Message the whole class (portal notification + email to every enrolled
+// student)
+// ─────────────────────────────────────────────────────────────────────────────
+export async function postCourseMessage(formData: FormData) {
+  const { teacher, profile } = await requireTeacher();
+  const courseId = String(formData.get("course_id") ?? "");
+  const title = String(formData.get("title") ?? "").trim();
+  const body = String(formData.get("body") ?? "").trim();
+  if (!courseId || !title || !body) throw new Error("Subject and message are required");
+  if (title.length > 200 || body.length > 5000) throw new Error("Message is too long");
+
+  await assertTeacherOwnsCourse(courseId, teacher.id, teacher.isAdmin);
+
+  const svc = createServiceRoleClient();
+  const [{ data: course }, { data: enrollments }] = await Promise.all([
+    svc.from("courses").select("name, code").eq("id", courseId).single(),
+    svc
+      .from("enrollments")
+      .select("students(profile_id)")
+      .eq("course_id", courseId)
+      .eq("status", "active"),
+  ]);
+  if (!course) throw new Error("Course not found");
+
+  const profileIds: string[] = [];
+  for (const e of (enrollments ?? []) as any[]) {
+    const s = Array.isArray(e.students) ? e.students[0] : e.students;
+    if (s?.profile_id) profileIds.push(s.profile_id as string);
+  }
+
+  await Promise.all(
+    profileIds.map((pid) =>
+      notifyProfile(pid, {
+        type: "message",
+        title: `${course.code ? `${course.code} — ` : ""}${course.name}: ${title}`,
+        message: `${body}\n\n— ${profile.full_name}`,
+        link: `/student/my-courses/${courseId}`,
+      }),
+    ),
+  );
+
+  await auditLog(profile.id, "post_course_message", "course", courseId, {
+    title,
+    recipients: profileIds.length,
+  });
+
+  revalidatePath(`/teacher/my-courses/${courseId}`);
 }

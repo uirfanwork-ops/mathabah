@@ -17,7 +17,7 @@ export function LoginForm() {
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(
     searchParams.get("error") === "confirm_failed"
-      ? "That confirmation link is invalid or has expired. Sign in below and we will offer to send you a new one."
+      ? "That confirmation link is invalid or has expired. Use the link below the form to get a new one — no password needed."
       : null,
   );
   const [unconfirmedEmail, setUnconfirmedEmail] = useState<string | null>(
@@ -100,6 +100,12 @@ export function LoginForm() {
       <Button type="submit" className="w-full" disabled={isPending}>
         {isPending ? "Signing in…" : "Sign in"}
       </Button>
+      <p className="text-center text-sm text-muted-foreground">
+        Didn&apos;t get your confirmation email?{" "}
+        <Link href="/auth/resend-confirmation" className="text-brand-gold hover:underline">
+          Send it again
+        </Link>
+      </p>
     </form>
   );
 }

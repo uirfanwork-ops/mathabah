@@ -166,6 +166,9 @@ export default async function CourseDetailPage({
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button asChild size="sm">
+            <Link href={`/teacher/my-courses/${course.id}`}>Take teacher role</Link>
+          </Button>
           <Button asChild variant="secondary" size="sm">
             <Link href={`/admin/courses/${course.id}/edit`}>Edit course</Link>
           </Button>
