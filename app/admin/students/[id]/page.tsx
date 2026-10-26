@@ -6,6 +6,7 @@ import { EnrollmentManager } from "@/components/admin/EnrollmentManager";
 import { StudentForm } from "@/components/admin/StudentForm";
 import { StudentTabs } from "@/components/admin/StudentTabs";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -21,6 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { deleteStudent } from "@/lib/admin/actions";
 import { createClient } from "@/lib/supabase/server";
 import { formatCurrency, formatDate, getInitials } from "@/lib/utils";
 
@@ -128,6 +130,12 @@ export default async function StudentProfilePage({
             >
               Edit account &amp; role →
             </Link>
+            <form action={deleteStudent} className="mt-2">
+              <input type="hidden" name="student_id" value={student.id} />
+              <Button type="submit" variant="destructive" size="sm">
+                Delete student
+              </Button>
+            </form>
             <div className="mt-1 flex items-center gap-2">
               {profile.display_id && (
                 <Badge variant="outline" className="font-mono">
