@@ -8,6 +8,7 @@ import {
 } from "@/lib/supabase/server";
 import { auditLog, notifyProfile } from "@/lib/notify";
 import { getTeacherIdentity } from "@/lib/teacher/identity";
+import { removeStoredFile } from "@/lib/resources/access";
 import {
   sendGradesUpdated,
   sendNewAssessment,
@@ -495,11 +496,18 @@ export async function deleteCourseResource(formData: FormData) {
 
   await assertTeacherOwnsCourse(courseId, teacher.id, teacher.isAdmin);
 
+  const { data: existing } = await supabase
+    .from("course_resources")
+    .select("file_url")
+    .eq("id", id)
+    .maybeSingle();
+
   const { error } = await supabase
     .from("course_resources")
     .delete()
     .eq("id", id);
   if (error) throw error;
+  await removeStoredFile(existing?.file_url);
 
   revalidatePath(`/teacher/my-courses/${courseId}`);
   revalidatePath(`/student/my-courses/${courseId}`);

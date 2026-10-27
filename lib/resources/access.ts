@@ -61,3 +61,31 @@ export async function canManageCourse(
     .maybeSingle();
   return !!data && data.teacher_id === mgr.teacherId;
 }
+
+/** Delete the stored object behind a resource's file_url (no-op for links). */
+export async function removeStoredFile(fileUrl: string | null | undefined) {
+  if (!fileUrl || !fileUrl.startsWith(FILE_ROUTE_PREFIX)) return;
+  const path = fileUrl.slice(FILE_ROUTE_PREFIX.length);
+  try {
+    await createServiceRoleClient().storage.from(RESOURCE_BUCKET).remove([path]);
+  } catch (e) {
+    console.warn("[removeStoredFile] failed", path, e);
+  }
+}
+
+/** Every object path in the resources bucket (walks the folder tree). */
+export async function listAllStoredFiles(): Promise<string[]> {
+  const storage = createServiceRoleClient().storage.from(RESOURCE_BUCKET);
+  const out: string[] = [];
+  async function walk(prefix: string) {
+    const { data } = await storage.list(prefix, { limit: 1000 });
+    for (const item of data ?? []) {
+      const full = prefix ? `${prefix}/${item.name}` : item.name;
+      // Folders come back without an id; files have one.
+      if (item.id) out.push(full);
+      else await walk(full);
+    }
+  }
+  await walk("");
+  return out;
+}

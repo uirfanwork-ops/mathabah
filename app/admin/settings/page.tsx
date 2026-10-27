@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { MaintenanceCard } from "@/components/admin/MaintenanceCard";
 import { SettingsForm } from "@/components/shared/SettingsForm";
 import { createClient } from "@/lib/supabase/server";
 
@@ -29,6 +30,7 @@ export default async function AdminSettingsPage() {
         </p>
       </div>
       <SettingsForm profile={profile} />
+      <MaintenanceCard />
     </div>
   );
 }

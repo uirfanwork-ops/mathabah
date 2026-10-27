@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
 import { notifyApproved, notifyProfile } from "@/lib/notify";
+import { listAllStoredFiles, removeStoredFile, FILE_ROUTE_PREFIX } from "@/lib/resources/access";
 import { readRegistration } from "@/lib/auth/registration";
 import {
   sendApprovalRejection,
@@ -459,7 +460,9 @@ export async function deleteStudent(formData: FormData) {
   await svc.from("students").delete().eq("id", studentId);
   if (student?.profile_id) {
     await svc.from("profiles").delete().eq("id", student.profile_id);
-    // Note: auth.users is left in place — admin can purge from Supabase dashboard.
+    // Remove the login as well so the address can be re-used and nothing lingers.
+    const { error: authErr } = await svc.auth.admin.deleteUser(student.profile_id);
+    if (authErr) console.warn("[deleteStudent] auth user removal failed", authErr);
   }
 
   await logAudit(admin.id, "delete_student", "student", studentId);
@@ -532,7 +535,8 @@ export async function deleteTeacher(formData: FormData) {
   await svc.from("teachers").delete().eq("id", teacherId);
   if (teacher?.profile_id) {
     await svc.from("profiles").delete().eq("id", teacher.profile_id);
-    // Note: auth.users is left in place — admin can purge from Supabase dashboard.
+    const { error: authErr } = await svc.auth.admin.deleteUser(teacher.profile_id);
+    if (authErr) console.warn("[deleteTeacher] auth user removal failed", authErr);
   }
 
   await logAudit(admin.id, "delete_teacher", "teacher", teacherId);
@@ -962,11 +966,18 @@ export async function adminDeleteCourseResource(formData: FormData) {
   const courseId = String(formData.get("course_id") ?? "");
   if (!id || !courseId) throw new Error("Missing fields");
 
+  const { data: existing } = await supabase
+    .from("course_resources")
+    .select("file_url")
+    .eq("id", id)
+    .maybeSingle();
+
   const { error } = await supabase
     .from("course_resources")
     .delete()
     .eq("id", id);
   if (error) throw error;
+  await removeStoredFile(existing?.file_url);
 
   await logAudit(admin.id, "delete_course_resource", "course_resource", id);
   revalidatePath(`/admin/courses/${courseId}`);
@@ -1286,4 +1297,67 @@ export async function adminUpdateUser(formData: FormData) {
   revalidatePath("/admin/teachers");
   revalidatePath("/admin/admins");
   revalidatePath("/admin/approvals");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Maintenance: purge leftovers from earlier deletions
+// ─────────────────────────────────────────────────────────────────────────────
+export async function purgeOrphans() {
+  const { profile: admin } = await requireAdmin();
+  const svc = createServiceRoleClient();
+
+  // 1. Logins that no longer have a profile.
+  const { data: profileRows } = await svc.from("profiles").select("id");
+  const profileIds = new Set((profileRows ?? []).map((p: { id: string }) => p.id));
+  let logins = 0;
+  for (let page = 1; page < 50; page++) {
+    const { data, error } = await svc.auth.admin.listUsers({ page, perPage: 1000 });
+    if (error) throw new Error(error.message);
+    for (const u of data.users) {
+      if (!profileIds.has(u.id)) {
+        const { error: delErr } = await svc.auth.admin.deleteUser(u.id);
+        if (!delErr) logins++;
+      }
+    }
+    if (data.users.length < 1000) break;
+  }
+
+  // 2. Stored files no resource row points to.
+  const { data: resources } = await svc
+    .from("course_resources")
+    .select("file_url")
+    .like("file_url", `${FILE_ROUTE_PREFIX}%`);
+  const referenced = new Set(
+    (resources ?? []).map((r: { file_url: string }) => r.file_url.slice(FILE_ROUTE_PREFIX.length)),
+  );
+  const stored = await listAllStoredFiles();
+  const orphanFiles = stored.filter((p) => !referenced.has(p));
+  let files = 0;
+  if (orphanFiles.length > 0) {
+    const { data: removed } = await svc.storage.from("course-resources").remove(orphanFiles);
+    files = removed?.length ?? 0;
+  }
+
+  // 3. "New registration" alerts for people who no longer have an account.
+  const { data: alertsRows } = await svc
+    .from("notifications")
+    .select("id, title")
+    .eq("type", "registration");
+  const { data: names } = await svc.from("profiles").select("full_name");
+  const nameSet = new Set((names ?? []).map((n: { full_name: string }) => n.full_name));
+  const stale = (alertsRows ?? [])
+    .filter((n: { title: string }) => {
+      const who = n.title.replace(/^New registration:\s*/, "");
+      return !nameSet.has(who);
+    })
+    .map((n: { id: string }) => n.id);
+  let alerts = 0;
+  if (stale.length > 0) {
+    const { error } = await svc.from("notifications").delete().in("id", stale);
+    if (!error) alerts = stale.length;
+  }
+
+  await logAudit(admin.id, "purge_orphans", "system", null, { logins, files, alerts });
+  revalidatePath("/admin/settings");
+  return { logins, files, alerts };
 }
