@@ -79,6 +79,19 @@
      black and is NOT a descendant of `.portal-main`, so it keeps its own
      colors. */
   .portal-main {
+    /* Light-theme tokens for everything inside the portal. Components use
+       `text-foreground`, `bg-card`, `bg-input`, `text-muted-foreground`
+       etc., which otherwise resolve to the dark-site palette (cream text)
+       and become invisible on the white portal surface. */
+    --foreground: 0 0% 4%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 4%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 4%;
+    --muted: 40 30% 96%;
+    --muted-foreground: 220 9% 32%;
+    --border: 220 13% 86%;
+    --input: 0 0% 100%;
     background-color: #ffffff;
     color: #0a0a0a;
     font-family: var(--font-sans), "Helvetica Neue", Helvetica, Arial,
@@ -143,5 +156,34 @@
   /* Keep red accents (status badges, destructive buttons) visible. */
   .portal-main [class*="bg-brand-red"] {
     color: #ffffff !important;
+  }
+  /* Pale accent text tuned for the dark site → strong shades on white. */
+  .portal-main [class*="text-emerald-100"],
+  .portal-main [class*="text-emerald-200"],
+  .portal-main [class*="text-emerald-300"] {
+    color: #065f46 !important;
+  }
+  .portal-main [class*="text-red-100"],
+  .portal-main [class*="text-red-200"],
+  .portal-main [class*="text-red-300"] {
+    color: #b91c1c !important;
+  }
+  /* Destructive alerts: tinted red box with dark red text (the button
+     variant keeps white text on solid red via bg-destructive). */
+  .portal-main [class*="bg-destructive/10"] {
+    color: #991b1b !important;
+  }
+  /* Neutral greys lighter than ~500 fail contrast on white. */
+  .portal-main [class~="text-neutral-300"],
+  .portal-main [class~="text-neutral-400"],
+  .portal-main [class~="text-gray-300"],
+  .portal-main [class~="text-gray-400"] {
+    color: #4b5563 !important;
+  }
+  /* Primary / secondary / destructive buttons keep their own light text. */
+  .portal-main [class*="bg-primary"],
+  .portal-main [class~="bg-destructive"],
+  .portal-main [class*="bg-brand-crimson"] {
+    color: #f5ecd6 !important;
   }
 }
